@@ -5,12 +5,12 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/landing'
+      component: () => import('@/views/LandingView.vue')
     },
     {
-      path: '/landing',
-      component: () => import('@/views/LandingView.vue')
-    }
+      path:'/auth',
+      component: () => import('@/views/AuthView.vue')
+    },
   ],
 })
 

@@ -9,7 +9,7 @@ const year = new Date().getFullYear()
     <nav class="grid grid-flow-col gap-4">
       <RouterLink to="/" class="link link-hover">Accueil</RouterLink>
       <RouterLink to="/rules" class="link link-hover">Information</RouterLink>
-      <a class="link link-hover" href="#" aria-disabled="true">Contact</a>
+      <RouterLink to="/contact" class="link link-hover" aria-disabled="true">Contact</RouterLink>
     </nav>
 
     <aside class="opacity-70">
