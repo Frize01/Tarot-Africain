@@ -23,7 +23,7 @@ const search = ref('')
 
           <ul
             tabindex="0"
-            class="dropdown-content menu menu-sm fixed left-0 right-0 top-0 w-full h-screen backdrop-blur-md bg-black/40 z-[-1] px-4 pt-20 pb-4 shadow-2xl"
+            class="dropdown-content menu menu-sm fixed left-0 right-0 top-0 w-full h-screen backdrop-blur-md bg-black/40 z-[50] px-4 pt-20 pb-4 shadow-2xl"
           >
             <li class="sm:hidden py-2">
               <VInput
