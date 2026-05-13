@@ -4,8 +4,7 @@ import { ref } from 'vue'
 import Login from '@/components/Login.vue'
 import Register from '@/components/Register.vue'
 
-import AppNavbar from '@/components/AppNavbar.vue'
-import AppFooter from '@/components/AppFooter.vue'
+import VButton from '@/components/VButton.vue'
 
 import { RouterLink } from 'vue-router'
 
@@ -36,22 +35,27 @@ const tab = ref<Tab>('signup')
           </RouterLink>
           <div class="flex justify-center mt-8 sm:mt-0">
             <div class="bg-base-200/70 p-1 rounded-xl inline-flex gap-1">
-              <button
-                class="btn btn-sm rounded-lg min-w-[5rem]"
-                :class="tab === 'signup' ? 'btn-neutral' : 'btn-ghost'"
+              <VButton
+                ariaLabel="S'inscrire"
+                size="btn-sm"
+                class="rounded-lg min-w-[5rem]"
+                :color="tab === 'signup' ? 'btn-neutral' : 'btn-ghost'"
+                :textColor="tab === 'signup' ? 'text-white' : 'text-base-content'"
                 @click="tab = 'signup'"
-                type="button"
               >
                 Inscription
-              </button>
-              <button
-                class="btn btn-sm rounded-lg min-w-[5rem]"
-                :class="tab === 'signin' ? 'btn-neutral' : 'btn-ghost'"
+              </VButton>
+
+              <VButton
+                ariaLabel="Se connecter"
+                size="btn-sm"
+                class="rounded-lg min-w-[5rem]"
+                :color="tab === 'signin' ? 'btn-neutral' : 'btn-ghost'"
+                :textColor="tab === 'signin' ? 'text-white' : 'text-base-content'"
                 @click="tab = 'signin'"
-                type="button"
               >
                 Connexion
-              </button>
+              </VButton>
             </div>
           </div>
 

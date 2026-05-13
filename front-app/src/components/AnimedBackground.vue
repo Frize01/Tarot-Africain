@@ -25,8 +25,9 @@ function spawnRandomElement() {
   const randomSize = minSize + Math.random() * (maxSize - minSize)
   const duration = 7 + (randomSize / 25) + Math.random() * 4
 
-  const heights = ['20%','30%', '40%','50%', '60%','70%','80%']
-  span.style.top = heights[Math.floor(Math.random() * heights.length)]
+  const heights = ['20%', '30%', '40%', '50%', '60%', '70%', '80%']
+  const height = heights[Math.floor(Math.random() * heights.length)] ?? '50%'
+  span.style.top = height
   span.style.width = `${randomSize}px`
   span.style.position = 'absolute' // Changé de fixed à absolute
   span.style.zIndex = '0'
@@ -36,7 +37,8 @@ function spawnRandomElement() {
   span.style.animation = `${isLeftToRight ? 'cross-right' : 'cross-left'} ${duration}s linear forwards`
   span.style.opacity = randomSize > 100 ? '0.3' : '0.6'
 
-  span.innerHTML = svgIcons[Math.floor(Math.random() * svgIcons.length)]
+  const icon = svgIcons[Math.floor(Math.random() * svgIcons.length)] ?? ''
+  span.innerHTML = icon
 
   // On ajoute au conteneur local, pas au body
   containerRef.value.appendChild(span)

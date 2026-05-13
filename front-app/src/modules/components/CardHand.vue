@@ -1,28 +1,29 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import GameCard from '@/components/GameCard.vue';
+import GameCard from '@/modules/components/GameCard.vue';
 
 interface Card {
-  id: number;
-  value: number | string; // 0 pour l'Excuse, 1 à 21 pour les autres
-  image: string;
+  id: number
+  value: number | '*'
+  image: string
 }
 
 const props = defineProps<{
-  cards: Card[];
-  isMyTurn: boolean;
-}>();
+  cards: Card[]
+  isMyTurn: boolean
+}>()
 
-const emit = defineEmits(['play-card']);
+const emit = defineEmits<{
+  (e: 'play-card', card: Card): void
+}>()
 
-// Tri automatique : l'Excuse (0) est souvent placée soit au début soit à la fin
 const sortedCards = computed(() => {
+  const toSortNumber = (value: Card['value']) => (value === '*' ? -1 : value)
+
   return [...props.cards].sort((a, b) => {
-    if (a.value === '*') return -1;
-    if (b.value === '*') return 1;
-    return a.value - b.value;
-  });
-});
+    return toSortNumber(a.value) - toSortNumber(b.value)
+  })
+})
 
 const getCardStyle = (index: number) => {
   const total = sortedCards.value.length;

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+
+import VButton from '@/components/VButton.vue'
+import VInput from '@/components/VInput.vue'
+
+const router = useRouter()
+const search = ref('')
 </script>
 
 <template>
@@ -32,29 +39,46 @@ import { RouterLink } from 'vue-router'
         </ul>
       </div>
       <div class="navbar-end flex gap-2">
-        <input type="text" placeholder="Rechercher..." class="input input-bordered w-64 lg:w-auto hidden sm:block" />
-        <RouterLink to="/auth" class="btn btn-neutral gap-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.9"
-            stroke-miterlimit="10"
-            aria-hidden="true"
+        <VInput
+          v-model="search"
+          placeholder="Rechercher..."
+          autocomplete="off"
+          class="w-64 lg:w-auto hidden sm:flex"
+        />
+        <VButton
+          ariaLabel="Se connecter"
+          color="btn-neutral"
+          textColor="text-white"
+          class="gap-2"
+          @click="router.push('/auth')"
+        >
+          <template #icon>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-miterlimit="10"
+              aria-hidden="true"
             >
-            <circle cx="12" cy="7.25" r="5.73" />
-            <path d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05" />
-          </svg>
+              <circle cx="12" cy="7.25" r="5.73" />
+              <path d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05" />
+            </svg>
+          </template>
           Se connecter
-        </RouterLink>
+        </VButton>
       </div>
     </div>
 
     <div class="collapse-content lg:hidden z-1">
-      <input type="text" placeholder="Rechercher..." class="input input-bordered w-full sm:hidden" />
-
+      <VInput
+        v-model="search"
+        placeholder="Rechercher..."
+        autocomplete="off"
+        class="w-full sm:hidden"
+      />
       <ul class="menu">
 
         <!-- <li><RouterLink to="/">Accueil</RouterLink></li> -->
