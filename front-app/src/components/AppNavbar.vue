@@ -75,14 +75,13 @@ const closeMenu = () => {
           v-model="search"
           placeholder="Rechercher..."
           type="text"
-          class="hidden sm:flex input-transparent text-white w-auto border-white"
+          class="hidden sm:flex max-w-xs input-transparent text-white border-white"
+          style="max-width: 12em;"
         />
 
         <VButton
           ariaLabel="Se connecter"
-          textColor="text-white"
-          color="transparent"
-          class="gap-2"
+          class="text-white bg-transparent hover:bg-white/10"
           @click="router.push('/auth')"
         >
           <template #icon>
@@ -100,7 +99,6 @@ const closeMenu = () => {
 </template>
 
 <style scoped>
-/* Supprime les styles par défaut qui pourraient décaler le menu mobile */
 .dropdown .dropdown-content {
   margin: 0 !important;
   border-radius: 0 !important;

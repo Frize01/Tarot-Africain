@@ -7,7 +7,13 @@ export default {
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        luckiest: ['"Luckiest Guy"', 'cursive'],
+      },
+    },
   },
   plugins: [daisyui],
 } satisfies Config
+
+

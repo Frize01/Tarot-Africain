@@ -15,7 +15,7 @@ defineSlots<{ content?: () => any }>()
 
 <template>
   <label
-    class="input input-bordered flex items-center gap-2 bg-transparent border-black focus-within:border-black focus-within:outline-none w-full"
+    class="input input-bordered flex items-center gap-2 bg-transparent border-black focus-within:border-black focus-within:outline-none"
   >
     <slot name="content" />
     <input

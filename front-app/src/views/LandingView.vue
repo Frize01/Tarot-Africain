@@ -18,6 +18,13 @@ import dungeonRoomBG from '@/asset/dungeonRoomBG.webp'
       <div
         class="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-b from-transparent to-black"
       />
+
+      <div class="w-full min-h-screen flex items-center justify-start p-4 sm:p-8 md:p-16">
+        <p class="font-luckiest text-[3rem] sm:text-[4rem] md:text-[6rem] text-white">
+          Games Lobby
+        </p>
+      </div>
+
     </HeroSection>
 
     <div class="relative bg-black">
