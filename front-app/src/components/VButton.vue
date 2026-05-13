@@ -2,7 +2,12 @@
   <button
     type="button"
     class="btn border-none"
-    :class="[fullWidth ? 'w-full' : '', color, textColor, size]"
+    :class="[
+      fullWidth ? 'w-full' : '',
+      color,
+      textColor,
+      size
+    ]"
     :aria-label="ariaLabel"
   >
     <slot name="icon"></slot>
