@@ -1,24 +1,26 @@
 <script setup lang="ts">
 const model = defineModel<string>()
 
-defineProps<{
+const props = defineProps<{
   type?: 'text' | 'email' | 'password' | 'number' | 'tel'
   placeholder?: string
   autocomplete?: string
   required?: boolean
   positionContent?: 'left' | 'right'
   colorContent?: string
+  color?: string
 }>()
+
 </script>
 
 <template>
   <label
     class="input input-bordered flex items-center gap-2 w-full focus-within:border-neutral focus-within:outline-none"
-    :class="{ 'flex-row-reverse': positionContent === 'right' }"
+    :class="[
+      { 'flex-row-reverse': positionContent === 'right' },
+    ]"
+    :style="{ backgroundColor: color }"
   >
-    <span v-if="$slots.content" :class="colorContent || 'opacity-70'">
-      <slot name="content"></slot>
-    </span>
 
     <input
       v-model="model"

@@ -4,10 +4,10 @@
     class="btn border-none"
     :class="[
       fullWidth ? 'w-full' : '',
-      color,
       textColor,
-      size
+      size,
     ]"
+    :style="{ backgroundColor: color }"
     :aria-label="ariaLabel"
   >
     <slot name="icon"></slot>

@@ -8,22 +8,21 @@ import VButton from '@/components/VButton.vue'
 
 import { RouterLink } from 'vue-router'
 
-import AnimedBackground from '@/components/AnimedBackground.vue'
+// import AnimedBackground from '@/components/AnimedBackground.vue'
+
+import HeroSection from '@/components/HeroSection.vue'
+import orangeBG from '@/asset/orangeBG.png'
 
 type Tab = 'signup' | 'signin'
 const tab = ref<Tab>('signup')
 </script>
 
 <template>
-  <!-- <AppNavbar /> -->
-  <!-- <main
-    class="min-h-screen min-h-dvh flex items-center justify-center p-4 sm:p-6 bg-cover bg-center relative"
-    style="background-image: url('');"
-  > -->
-  <AnimedBackground>
-    <!-- <div class="absolute inset-0 bg-black/20 pointer-events-none" ></div> -->
+  <!-- <AnimedBackground> -->
+  <HeroSection :image="orangeBG" class="relative min-h-screen flex items-center justify-center p-4 sm:p-6">
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-black/70" />
+    <section class="relative z-10 w-full max-w-md sm:max-w-lg xl:max-w-xl">
 
-    <section class="relative w-full max-w-md sm:max-w-lg xl:max-w-xl">
       <div class="card bg-base-100/70 backdrop-blur-xl shadow-2xl">
         <div class="card-body gap-5 p-5 sm:p-8">
           <RouterLink to="/" class="absolute -top-10 left-1/2 -translate-x-1/2 sm:left-12 sm:translate-x-0">
@@ -70,7 +69,6 @@ const tab = ref<Tab>('signup')
         </div>
       </div>
     </section>
-  </AnimedBackground>
-  <!-- </main> -->
-  <!-- <AppFooter /> -->
+  </HeroSection>
+  <!-- </AnimedBackground> -->
 </template>
