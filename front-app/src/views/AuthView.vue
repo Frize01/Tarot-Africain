@@ -25,21 +25,23 @@ const tab = ref<Tab>('signup')
 
       <div class="card bg-base-100/70 backdrop-blur-xl shadow-2xl">
         <div class="card-body gap-5 p-5 sm:p-8">
-          <RouterLink to="/" class="absolute -top-10 left-1/2 -translate-x-1/2 sm:left-12 sm:translate-x-0">
+          <RouterLink to="/" class="absolute -top-10 left-1/2 -translate-x-1/2 sm:-top-12">
             <div class="avatar">
               <div class="w-20 h-20 rounded-full ring ring-base-100 ring-offset-base-100 ring-offset-2 shadow-2xl">
                 <img src="https://img.daisyui.com/images/store/large/auth/auth@2-4.webp" alt="Logo" />
               </div>
             </div>
           </RouterLink>
-          <div class="flex justify-center mt-8 sm:mt-0">
-            <div class="bg-base-200/70 p-1 rounded-xl inline-flex gap-1">
+          <div class="flex justify-center mt-8 sm:mt-4">
+            <div class="bg-base-100/70 p-1 rounded-xl inline-flex gap-1">
+
               <VButton
                 ariaLabel="S'inscrire"
                 size="btn-sm"
-                class="rounded-lg min-w-[5rem]"
-                :color="tab === 'signup' ? 'btn-neutral' : 'btn-ghost'"
-                :textColor="tab === 'signup' ? 'text-white' : 'text-base-content'"
+                class="rounded-lg min-w-[5rem] transition-colors"
+                :class="tab === 'signup'
+                  ? 'bg-neutral text-white'
+                  : 'bg-transparent text-base-content hover:bg-base-300/50'"
                 @click="tab = 'signup'"
               >
                 Inscription
@@ -48,16 +50,17 @@ const tab = ref<Tab>('signup')
               <VButton
                 ariaLabel="Se connecter"
                 size="btn-sm"
-                class="rounded-lg min-w-[5rem]"
-                :color="tab === 'signin' ? 'btn-neutral' : 'btn-ghost'"
-                :textColor="tab === 'signin' ? 'text-white' : 'text-base-content'"
+                class="rounded-lg min-w-[5rem] transition-colors"
+                :class="tab === 'signin'
+                  ? 'bg-neutral text-white'
+                  : 'bg-transparent text-base-content hover:bg-base-300/50'"
                 @click="tab = 'signin'"
               >
                 Connexion
               </VButton>
+
             </div>
           </div>
-
           <h1 class="text-2xl sm:text-3xl font-bold leading-tight">
             {{ tab === 'signup' ? 'Créer un compte' : 'Connectez-vous' }}
           </h1>

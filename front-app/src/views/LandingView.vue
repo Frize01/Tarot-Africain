@@ -5,8 +5,8 @@ import AppFooter from '@/components/AppFooter.vue'
 import HeroSection from '@/components/HeroSection.vue'
 
 import orangeBG from '@/asset/orangeBG.png'
-import greenBG from '@/asset/greenBG.png'
 
+import dungeonRoomBG from '@/asset/dungeonRoomBG.webp'
 
 </script>
 
@@ -16,10 +16,21 @@ import greenBG from '@/asset/greenBG.png'
   <main>
     <HeroSection :image="orangeBG" class="relative">
       <div
-        class="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-black/70"
+        class="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-b from-transparent to-black"
       />
     </HeroSection>
-    <HeroSection :image="greenBG" />
+
+    <div class="relative bg-black">
+      <HeroSection
+        :image="dungeonRoomBG"
+        overlay-color="rgba(200, 100, 30, 0.45)"
+        class="bg-contain"
+        style="aspect-ratio: 16/9; min-height: auto; background-position: right center;"
+      >
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-t from-transparent to-black" />
+        <div class="pointer-events-none absolute inset-y-0 left-0 w-72 bg-gradient-to-r from-black to-transparent" />
+      </HeroSection>
+    </div>
   </main>
 
   <AppFooter />

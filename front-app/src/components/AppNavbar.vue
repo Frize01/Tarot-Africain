@@ -7,15 +7,22 @@ import VInput from '@/components/VInput.vue'
 
 const router = useRouter()
 const search = ref('')
+
+const closeMenu = () => {
+  const elem = document.activeElement as HTMLElement
+  if (elem) {
+    elem.blur()
+  }
+}
 </script>
 
 <template>
-<header class="fixed top-0 z-50 w-full bg-transparent">
+  <header class="fixed top-0 z-50 w-full bg-transparent">
     <div class="navbar px-4 lg:px-8 min-h-0 bg-transparent">
 
       <div class="navbar-start">
         <div class="dropdown lg:hidden">
-          <label tabindex="0" class="btn btn-ghost text-white">
+          <label tabindex="0" class="btn btn-ghost text-white relative z-40">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
             </svg>
@@ -23,24 +30,37 @@ const search = ref('')
 
           <ul
             tabindex="0"
-            class="dropdown-content menu menu-sm fixed left-0 right-0 top-0 w-full h-screen backdrop-blur-md bg-black/40 z-[50] px-4 pt-20 pb-4 shadow-2xl"
+            class="dropdown-content menu menu-sm fixed top-0 left-0 m-0 w-screen h-screen backdrop-blur-md bg-black/80 z-[100] px-6 pt-24 shadow-2xl"
           >
-            <li class="sm:hidden py-2">
+            <button
+              @click="closeMenu"
+              class="absolute top-4 left-4 btn btn-ghost text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            <li class="sm:hidden mb-4">
               <VInput
                 v-model="search"
                 placeholder="Rechercher..."
-                autocomplete="off"
-                class="w-full"
-                color="transparent"
-
+                class="w-full input-transparent text-white border-white"
               />
             </li>
-            <li><RouterLink to="/categories" class="text-white text-lg">Catégories</RouterLink></li>
-            <li><RouterLink to="/about" class="text-white text-lg">À propos</RouterLink></li>
+
+            <li>
+              <RouterLink to="/categories" class="text-white text-2xl py-4" @click="closeMenu">
+                Catégories
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/about" class="text-white text-2xl py-4" @click="closeMenu">
+                À propos
+              </RouterLink>
+            </li>
           </ul>
         </div>
 
-        <RouterLink to="/" class="btn btn-ghost text-xl text-white normal-case">logo</RouterLink>
+        <RouterLink to="/" class="btn btn-ghost text-xl text-white normal-case">LOGO</RouterLink>
       </div>
 
       <div class="navbar-center hidden lg:flex">
@@ -54,15 +74,17 @@ const search = ref('')
         <VInput
           v-model="search"
           placeholder="Rechercher..."
-          autocomplete="off"
-          color="transparent"
-          class="w-64 lg:w-auto hidden sm:flex" />
+          type="text"
+          class="hidden sm:flex input-transparent text-white w-auto border-white"
+        />
+
         <VButton
           ariaLabel="Se connecter"
           textColor="text-white"
           color="transparent"
           class="gap-2"
-          @click="router.push('/auth')">
+          @click="router.push('/auth')"
+        >
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.9">
               <circle cx="12" cy="7.25" r="5.73" />
@@ -78,6 +100,12 @@ const search = ref('')
 </template>
 
 <style scoped>
+/* Supprime les styles par défaut qui pourraient décaler le menu mobile */
+.dropdown .dropdown-content {
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
 .dropdown-content li a {
   color: white !important;
 }

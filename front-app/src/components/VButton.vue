@@ -1,36 +1,30 @@
 <template>
   <button
     type="button"
-    class="btn border-none"
+    class="btn flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 border-none"
     :class="[
-      fullWidth ? 'w-full' : '',
-      textColor,
       size,
+      { 'w-full': fullWidth }
     ]"
-    :style="{ backgroundColor: color }"
     :aria-label="ariaLabel"
   >
     <slot name="icon"></slot>
+
     <slot></slot>
   </button>
 </template>
 
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    ariaLabel?: string
-    color?: string
-    textColor?: string
-    size?: string
-    fullWidth?: boolean
-  }>(),
-  {
-    color: 'bg-white',
-    textColor: 'text-black',
-    size: '',
-    fullWidth: false
-  }
-)
+interface Props {
+  ariaLabel?: string
+  size?: string      // btn-sm, btn-lg
+  fullWidth?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  size: '',
+  fullWidth: false
+})
 
 defineSlots<{
   icon?: () => any
