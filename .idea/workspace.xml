@@ -5,7 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8108168b-365b-4f2d-93a6-b4388569ab1f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/front-app/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/front-app/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/front-app/src/asset/dungeonRedo.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/front-app/src/asset/dungeonRoomBG.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/front-app/src/asset/dungeonRoomBG.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/front-app/src/asset/greenBG.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/front-app/src/components/HeroSection.vue" beforeDir="false" afterPath="$PROJECT_DIR$/front-app/src/components/HeroSection.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/front-app/src/views/LandingView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/front-app/src/views/LandingView.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -77,7 +82,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1778752584728</updated>
-      <workItem from="1778752585971" duration="3276000" />
+      <workItem from="1778752585971" duration="8806000" />
     </task>
     <servers />
   </component>
