@@ -1,0 +1,13 @@
+services:
+  front-end:
+    build:
+      context: ./front-app/
+      dockerfile: ../docker/front-end/Dockerfile
+
+  # back-end:
+  #   build:
+  #     context: ./back-app/
+  #     dockerfile: ../docker/back-end/Dockerfile
+
+  traefik:
+    
