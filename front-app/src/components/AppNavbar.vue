@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { onMounted, onUnmounted } from 'vue'
 
 import VButton from '@/components/VButton.vue'
 import VInput from '@/components/VInput.vue'
@@ -14,11 +15,33 @@ const closeMenu = () => {
     elem.blur()
   }
 }
+
+const isScrolled = ref(false)
+
+const handleScroll = () => {
+  isScrolled.value = window.scrollY > 20
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
 </script>
 
 <template>
-  <header class="fixed top-0 z-50 w-full bg-transparent">
-    <div class="navbar px-4 lg:px-8 min-h-0 bg-transparent">
+  <header
+    class="fixed top-0 z-50 w-full transition-all duration-300"
+    :class="[
+      isScrolled
+        ? 'bg-zinc-900/90 backdrop-blur-md'
+        : 'bg-transparent py-4'
+    ]"
+  >
+    <div class="navbar px-4 lg:px-8 min-h-0">
 
       <div class="navbar-start">
         <div class="dropdown lg:hidden">
@@ -43,7 +66,7 @@ const closeMenu = () => {
               <VInput
                 v-model="search"
                 placeholder="Rechercher..."
-                class="w-full input-transparent text-white border-white"
+                class="w-full input-transparent text-white border border-white/20"
               />
             </li>
 
@@ -75,7 +98,7 @@ const closeMenu = () => {
           v-model="search"
           placeholder="Rechercher..."
           type="text"
-          class="hidden sm:flex max-w-xs input-transparent text-white border-white"
+          class="hidden sm:flex max-w-xs input-transparent text-white border border-white/20"
           style="max-width: 12em;"
         />
 

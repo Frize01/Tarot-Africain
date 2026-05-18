@@ -25,7 +25,7 @@
       placeholder="Email"
       autocomplete="email"
       required
-      class="input-bordered border-white"
+      class="input-bordered border-white w-full"
     />
 
     <VInput
@@ -34,7 +34,7 @@
       placeholder="Mot de passe"
       autocomplete="current-password"
       required
-      class="input-bordered border-white"
+      class="input-bordered border-white w-full"
     />
 
 

@@ -40,7 +40,7 @@
       placeholder="Email"
       autocomplete="email"
       required
-      class="input-bordered border-white"
+      class="input-bordered border-white w-full"
     >
       <template #content>
         <svg
@@ -59,7 +59,7 @@
 
     <!-- Tel -->
     <div class="join w-full">
-      <select class="select select-ghost join-item w-20 sm:w-24 shrink-0 border-white"
+      <select class="select join-item w-20 sm:w-24 shrink-0 border-white"
       v-model="countryCode">
         <option>🇫🇷</option>
         <option>🇺🇸</option>

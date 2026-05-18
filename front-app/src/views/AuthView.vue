@@ -11,7 +11,7 @@ import { RouterLink } from 'vue-router'
 // import AnimedBackground from '@/components/AnimedBackground.vue'
 
 import HeroSection from '@/components/HeroSection.vue'
-import orangeBG from '@/asset/orangeBG.png'
+import castle from '@/asset/castle.png'
 
 type Tab = 'signup' | 'signin'
 const tab = ref<Tab>('signup')
@@ -19,7 +19,7 @@ const tab = ref<Tab>('signup')
 
 <template>
   <!-- <AnimedBackground> -->
-  <HeroSection :image="orangeBG" class="relative min-h-screen flex items-center justify-center p-4 sm:p-6">
+  <HeroSection :image="castle" class="relative min-h-screen flex items-center justify-center p-4 sm:p-6">
     <div class="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-black/70" />
     <section class="relative z-10 w-full max-w-md sm:max-w-lg xl:max-w-xl">
 
