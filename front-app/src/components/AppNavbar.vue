@@ -6,6 +6,8 @@ import { onMounted, onUnmounted } from 'vue'
 import VButton from '@/components/VButton.vue'
 import VInput from '@/components/VInput.vue'
 
+import logo from '@/asset/logo_app.png'
+
 const router = useRouter()
 const search = ref('')
 
@@ -71,25 +73,37 @@ onUnmounted(() => {
             </li>
 
             <li>
-              <RouterLink to="/categories" class="text-white text-2xl py-4" @click="closeMenu">
+              <!-- <RouterLink to="/categories" class="text-white text-2xl py-4" @click="closeMenu">
                 Catégories
-              </RouterLink>
+              </RouterLink> -->
+              <span class="text-white text-2xl py-4" aria-disabled="true">
+                Catégories
+              </span>
             </li>
             <li>
-              <RouterLink to="/about" class="text-white text-2xl py-4" @click="closeMenu">
+              <!-- <RouterLink to="/about" class="text-white text-2xl py-4" @click="closeMenu">
                 À propos
-              </RouterLink>
+              </RouterLink> -->
+              <span class="text-white text-2xl py-4" aria-disabled="true">
+                À propos
+              </span>
             </li>
           </ul>
         </div>
 
         <RouterLink to="/" class="btn btn-ghost text-xl text-white normal-case">LOGO</RouterLink>
+        <!-- <RouterLink to="/" class="flex items-center gap-2">
+          <img :src="logo" alt="Logo" class="h-32 w-48" />
+        </RouterLink> -->
+
       </div>
 
       <div class="navbar-center hidden lg:flex">
         <ul class="menu menu-horizontal px-1 text-white">
-          <li><RouterLink to="/categories">Catégories</RouterLink></li>
-          <li><RouterLink to="/about">À propos</RouterLink></li>
+          <!-- <li><RouterLink to="/categories">Catégories</RouterLink></li>
+          <li><RouterLink to="/about">À propos</RouterLink></li> -->
+          <li><span aria-disabled="true">Catégories</span></li>
+          <li><span aria-disabled="true">À propos</span></li>
         </ul>
       </div>
 

@@ -19,9 +19,9 @@ const randomRunes = [...RUNES_LIST].sort(() => Math.random() - 0.5).slice(0, 5).
 <template>
   <div
     class="group relative overflow-hidden cursor-pointer border transition-all duration-300
-      border-orange-900/40 shadow-[0_4px_24px_rgba(0,0,0,.6)]
+      border-orange-900 shadow-[0_4px_24px_rgba(0,0,0,.6)]
       hover:border-orange-600/60 hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(0,0,0,.7),0_0_20px_rgba(200,60,10,.2)]"
-    style="background: linear-gradient(135deg, rgba(20,8,4,.85), rgba(35,12,5,.9) 50%, rgba(20,8,4,.85)); backdrop-filter: blur(8px);"
+    style="background: linear-gradient(135deg, rgba(20,8,4,.85), rgba(35,12,5,.9) 100%, rgba(20,8,4,.85)); backdrop-filter: blur(8px);"
   >
     <!-- glow -->
     <div class="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100 bg-[radial-gradient(ellipse_at_50%_0%,rgba(200,60,15,0.08),transparent_70%)]" />
