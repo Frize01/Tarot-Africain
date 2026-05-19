@@ -2,31 +2,38 @@
 withDefaults(
   defineProps<{
     image: string
+    imageMobile?: string
+    imageDesktop?: string
     minHeight?: string
-    overlayColor?: string
-    parallax?: boolean
+    mobileBreakpoint?: string
   }>(),
   {
     minHeight: '100vh',
-    overlayColor: 'transparent',
-    parallax: false,
+    mobileBreakpoint: '768px',
   }
 )
 </script>
 
 <template>
   <section class="hero-section" :style="{ minHeight }">
-    <div
-      class="hero-bg"
-      :class="{ 'hero-bg--parallax': parallax }"
-      :style="{ backgroundImage: `url(${image})` }"
-    />
-
-    <div
-      v-if="overlayColor !== 'transparent'"
-      class="hero-overlay"
-      :style="{ backgroundColor: overlayColor }"
-    />
+    <picture class="hero-picture">
+      <source
+        v-if="imageMobile"
+        :srcset="imageMobile"
+        :media="`(max-width: ${mobileBreakpoint})`"
+      />
+      <source
+        v-if="imageDesktop"
+        :srcset="imageDesktop"
+        :media="`(min-width: ${mobileBreakpoint})`"
+      />
+      <img
+        class="hero-img"
+        :src="image"
+        alt=""
+        aria-hidden="true"
+      />
+    </picture>
 
     <slot />
   </section>
@@ -39,37 +46,18 @@ withDefaults(
   overflow: hidden;
 }
 
-/* .hero-bg {
-  position: absolute;
-  inset: -20%;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  will-change: transform;
-  transition: transform 0.1s linear;
-} */
-
-@media (min-width: 1024px) {
-  .hero-bg--parallax {
-  }
-}
-
-.hero-overlay {
+.hero-picture {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  mix-blend-mode: multiply;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.hero-bg--parallax {
-  inset: -5%;
+.hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 </style>

@@ -8,6 +8,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'home',
       component: () => import('@/views/LandingView.vue')
     },
     {

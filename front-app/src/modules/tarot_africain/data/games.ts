@@ -55,4 +55,23 @@ export const GAMES_DATA= {
       { id:21,  name:"Le Monde",            value:21,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
     ]
   },
+  belote: {
+    id: 'belote',
+    title: 'Belote',
+    routeName: 'Belote',
+    description:
+      "Un jeu de plis pour 4 joueurs en équipes de 2 : annoncez vos contrats, jouez vos cartes et collaborez avec votre partenaire pour remporter la partie !",
+    playerCount: { min: 4, max: 4 },
+    tags: [
+      { title: 'Famille', color: '#42b883' },
+      { title: 'Jeux de Cartes', color: '#3178c6' },
+      { title: 'Stratégique', color: '#f59e0b' },
+    ],
+    rooms: [
+      { id: '456789', name: 'Room #1', players: 4, max: 4, open: true, private: false },
+      { id: '567890', name: 'Room #2', players: 3, max: 4, open: true, private: true },
+      { id: '678901', name: 'Room #3', players: 4, max: 4, open: false, private: false },
+    ],
+    cards: []
+  },
 }
