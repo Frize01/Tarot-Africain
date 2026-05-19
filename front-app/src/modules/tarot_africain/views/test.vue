@@ -61,23 +61,24 @@
 // })
 
 import { GAMES_DATA } from '../data/games'
-
-
-import { Card } from '@/modules/tarot_africain/models/Card'
-import CardHand from '@/modules/components/CardHand.vue'
 import GameTable from '@/modules/components/GameTable.vue'
 
 import OpponentHand from '@/modules/components/OpponentHand.vue'
 
 const cards=GAMES_DATA['tarot_africain'].cards
+let nbCardsPerPlayer = 4
+const randomCards = (cards.sort(() => 0.5 - Math.random()).slice(0, nbCardsPerPlayer)) as any[]
+
+
 
 </script>
 
-<template>
-  <div class="bg-[#064e3b] text-black min-h-screen justify-center items-center">
-    <h1 class="text-3xl font-bold text-center py-4 text-white">Test Tarot Africain</h1>
-    <CardHand :cards="[cards[0], cards[1], cards[2], cards[3], cards[4],cards[5],cards[6],cards[7]]" :isMyTurn="true" @play-card="card => console.log('Played card:', card)" />
-    <OpponentHand :nbCards="8" />
-  </div>
-</template>
 
+<template>
+  <GameTable
+    :numPlayers="5"
+    :nbCardsPerPlayer="nbCardsPerPlayer"
+    :myHand="randomCards"
+    @play-card="card => console.log('Carte jouée depuis la table:', card)"
+  />
+</template>

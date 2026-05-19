@@ -1,83 +1,86 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = withDefaults(
+  defineProps<{
+    count?: number
+    cardWidth?: number
+    rotation?: string
+  }>(),
+  { count: 5, cardWidth: 45, rotation: '0deg' }
+)
+
+const cards = computed(() => {
+  const { count, cardWidth: w } = props
+  const angleStep = Math.min(40 / (count - 1), 12)
+  const startAngle = -((count - 1) * angleStep) / 2
+
+  return Array.from({ length: count }, (_, i) => {
+    const angle = startAngle + i * angleStep
+    return {
+      id: i,
+      rotation: angle,
+      offsetY: 120 * (1 - Math.cos((angle * Math.PI) / 180)),
+      marginLeft: i > 0 ? `-${w * 0.75}px` : '0',
+    }
+  })
+})
+</script>
+
 <template>
-  <div class="cards-wrapper" :class="`position-${props.position}`">
+  <div class="hand-wrapper" :style="{ '--rotation': rotation }">
     <div
-      v-for="i in props.nbCards"
-      :key="i"
-      class="fanned-card"
-      :style="getCardStyle(i - 1)"
+      v-for="card in cards"
+      :key="card.id"
+      class="card-back"
+      :style="{
+        width: `${cardWidth}px`,
+        zIndex: card.id,
+        marginLeft: card.marginLeft,
+        transform: `rotate(${card.rotation}deg) translateY(${card.offsetY}px)`,
+      }"
     >
-      <div class="card-back-placeholder"></div>
+      <div class="card-face">
+        <div class="card-border" />
+      </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-type Position = 'top' | 'left' | 'right' | 'top-left' | 'top-right'
-
-const props = defineProps<{
-  nbCards: number
-  position?: Position
-}>()
-
-const getCardStyle = (index: number) => {
-  const midIndex = (props.nbCards - 1) / 2
-  const isVertical = props.position === 'left' || props.position === 'right'
-
-  // Les cartes latérales se superposent verticalement, pas en éventail horizontal
-  if (isVertical) {
-    const offset = (index - midIndex) * 18 // décalage vertical entre cartes
-    const rotation = (index - midIndex) * 5
-    return {
-      transform: `translateY(${offset}px) rotate(${rotation}deg)`,
-      zIndex: index,
-    }
-  }
-
-  // Cartes du haut : éventail normal
-  const rotation = (index - midIndex) * 7
-  return {
-    transform: `rotate(${rotation}deg)`,
-    zIndex: index,
-  }
-}
-</script>
-
 <style scoped>
-.cards-wrapper {
+.hand-wrapper {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  rotate: var(--rotation, 0deg);
+}
+
+.card-back {
   position: relative;
-  width: 100px;
-  height: 150px;
-}
-
-/* Rotation du groupe entier selon la position */
-.position-left {
-  transform: rotate(90deg);
-}
-
-.position-right {
-  transform: rotate(-90deg);
-}
-
-/* top, top-left, top-right : éventail normal, retourné vers la table */
-.position-top,
-.position-top-left,
-.position-top-right {
-  transform: rotate(180deg);
-}
-
-.fanned-card {
-  position: absolute;
-  width: 100%;
-  height: 100%;
+  flex-shrink: 0;
+  aspect-ratio: 2 / 3;
+  background-color: #1e293b;
+  border-radius: 4px;
+  border: 1px solid rgb(255 255 255 / 0.2);
   transform-origin: bottom center;
 }
 
-.card-back-placeholder {
-  width: 100%;
-  height: 100%;
-  background: #8b4513;
-  border: 3px solid #f5deb3;
-  border-radius: 8px;
-  box-shadow: -2px 2px 5px rgba(0, 0, 0, 0.3);
+.card-face {
+  position: absolute;
+  inset: 2px;
+  border-radius: 3px;
+  background: #450a0a; /* red-950 */
+  border: 1px solid #d97706; /* amber-600 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.card-border {
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed rgb(180 130 30 / 0.5); /* amber-700/50 */
+  border-radius: 2px;
+}
+
 </style>
