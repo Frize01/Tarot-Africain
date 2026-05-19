@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import GameCard from '@/modules/components/GameCard.vue';
-
-interface Card {
-  id: number
-  value: number | '*'
-  image: string
-}
+import { Card } from '@/modules/tarot_africain/models/Card';
 
 const props = defineProps<{
   cards: Card[]
@@ -17,22 +12,47 @@ const emit = defineEmits<{
   (e: 'play-card', card: Card): void
 }>()
 
+const selectedCardId = ref<number | null>(null);
+
+watch(() => props.isMyTurn, (newVal) => {
+  if (!newVal) selectedCardId.value = null;
+});
+
 const sortedCards = computed(() => {
-  const toSortNumber = (value: Card['value']) => (value === '*' ? -1 : value)
+  return [...props.cards].sort((a, b) => (a.value ?? -1) - (b.value ?? -1));
+});
 
-  return [...props.cards].sort((a, b) => {
-    return toSortNumber(a.value) - toSortNumber(b.value)
-  })
-})
+const handleCardClick = (card: Card) => {
+  if (!props.isMyTurn) return;
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
-const getCardStyle = (index: number) => {
+  if (isMobile) {
+    if (selectedCardId.value === card.id) {
+      emit('play-card', card);
+      selectedCardId.value = null;
+    } else {
+      selectedCardId.value = card.id;
+    }
+  } else {
+    emit('play-card', card);
+  }
+};
+
+const getCardStyle = (index: number, cardId: number) => {
   const total = sortedCards.value.length;
   const middle = (total - 1) / 2;
-
-  // Dans le Tarot Africain, on a souvent moins de cartes en main au fil des tours
-  // On ajuste l'éventail pour qu'il reste centré et beau
+  const isSelected = selectedCardId.value === cardId;
   const anglePerCard = total > 10 ? 4 : 8;
   const rotation = (index - middle) * anglePerCard;
+
+  if (isSelected) {
+    return {
+      transform: `translateY(-60px) scale(1.2) rotate(0deg)`,
+      marginLeft: index === 0 ? '0' : '-50px',
+      zIndex: index
+    };
+  }
+
   const vOffset = Math.pow(Math.abs(index - middle), 2) * (total > 10 ? 2 : 4);
 
   return {
@@ -50,13 +70,14 @@ const getCardStyle = (index: number) => {
         v-for="(card, index) in sortedCards"
         :key="card.id"
         class="card-slot"
-        :style="getCardStyle(index)"
+        :style="getCardStyle(index, card.id)"
+        :class="{ 'is-selected': selectedCardId === card.id }"
       >
         <GameCard
-          :value="card.value === '*' ? '*' : card.value"
+          :value="card.value"
           :imageFace="card.image"
           :shown="true"
-          @click="isMyTurn && emit('play-card', card)"
+          @click="handleCardClick(card)"
         />
       </div>
     </div>
@@ -66,17 +87,14 @@ const getCardStyle = (index: number) => {
 <style scoped>
 .african-hand {
   transition: opacity 0.3s;
-}
-
-.my-turn {
-  filter: drop-shadow(0 0 15px rgba(66, 184, 131, 0.3));
+  width: 100%;
 }
 
 .cards-fan {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: 250px;
+  height: 280px;
 }
 
 .card-slot {
@@ -84,9 +102,18 @@ const getCardStyle = (index: number) => {
   cursor: pointer;
 }
 
-.card-slot:hover {
-  transform: translateY(-50px) scale(1.15) rotate(0deg) !important;
-  /* z-index: 100 !important; */
-  margin: 0 20px !important;
+@media (hover: hover) {
+  .card-slot:hover:not(.is-selected) {
+    transform: translateY(-50px) scale(1.15) rotate(0deg) !important;
+    margin: 0 10px !important;
+  }
+}
+
+.is-selected {
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
+}
+
+.my-turn {
+  background: radial-gradient(50% 50% at 50% 100%, rgba(66, 184, 131, 0.1) 0%, transparent 100%);
 }
 </style>

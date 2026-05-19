@@ -24,7 +24,12 @@ const router = createRouter({
       path: '/tarot_africain/lobby/:gameId',
       name: 'TarotAfricainLobby',
       component: () => import('@/modules/tarot_africain/views/Lobby.vue')
-    }
+    },
+    {
+      path: '/test',
+      name: 'test',
+      component: () => import('@/modules/tarot_africain/views/test.vue')
+    },
   ],
 })
 

@@ -1,16 +1,17 @@
 
-export interface GameData {
-  id: string
-  routeName: string
-  title: string
-  description: string
-  playerCount: { min: number; max: number }
-  tags: { title: string; color: string }[]
-  rooms: { id: string; name: string; players: number; max: number; open: boolean; private: boolean }[]
-  leaderboard: { rank: number; name: string; games: number; winRate: string }[]
-}
+// export interface GameData {
+//   id: string
+//   routeName: string
+//   title: string
+//   description: string
+//   playerCount: { min: number; max: number }
+//   tags: { title: string; color: string }[]
+//   rooms: { id: string; name: string; players: number; max: number; open: boolean; private: boolean }[]
+//   leaderboard: { rank: number; name: string; games: number; winRate: string }[]
+//   cards: { id: number; name: string; value: number | null; image: string }[]
+// }
 
-export const GAMES_DATA: Record<string, GameData> = {
+export const GAMES_DATA= {
   tarot_africain: {
     id: 'tarot_africain',
     title: 'Tarot Africain',
@@ -29,12 +30,29 @@ export const GAMES_DATA: Record<string, GameData> = {
       { id: '234567', name: 'Room #2', players: 5, max: 5, open: false, private: false },
       { id: '345678', name: 'Room #3', players: 1, max: 5, open: true, private: false },
     ],
-    leaderboard: [
-      { rank: 1, name: 'John Carter', games: 153, winRate: '85%' },
-      { rank: 2, name: 'Amara Diallo', games: 121, winRate: '78%' },
-      { rank: 3, name: 'Kofi Mensah', games: 98, winRate: '71%' },
-      { rank: 4, name: 'Fatou Ndiaye', games: 76, winRate: '66%' },
-      { rank: 5, name: 'Luc Okonkwo', games: 54, winRate: '60%' },
-    ],
+    cards:[
+      { id:0,   name:"L'Excuse",            value:null, image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:1,   name:'Le Bateleur',         value:1,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:2,   name:'La Papesse',          value:2,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:3,   name:"L'Impératrice",       value:3,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:4,   name:"L'Empereur",          value:4,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:5,   name:"Le Pape",             value:5,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:6,   name:"L'Amoureux",          value:6,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:7,   name:"Le Chariot",          value:7,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:8,   name:"La Justice",          value:8,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:9,   name:"L'Ermite",            value:9,    image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:10,  name:"La Roue de Fortune",  value:10,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:11,  name:"La Force",            value:11,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:12,  name:"Le Pendu",            value:12,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:13,  name:"La Mort",             value:13,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:14,  name:"La Tempérance",       value:14,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:15,  name:"Le Diable",           value:15,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:16,  name:"La Maison Dieu",      value:16,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:17,  name:"L'Étoile",            value:17,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:18,  name:"La Lune",             value:18,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:19,  name:"Le Soleil",           value:19,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:20,  name:"Le Jugement",         value:20,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+      { id:21,  name:"Le Monde",            value:21,   image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH04I_HS-NJX4XKNGTSKNIGlRe-9AKbkyLIg&s" },
+    ]
   },
 }

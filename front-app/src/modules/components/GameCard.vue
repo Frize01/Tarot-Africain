@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  value: number | string
+  value: number | string | null
   imageFace: string
   imageBack?: string
   shown?: boolean
@@ -13,7 +13,7 @@ defineProps<{
       v-if="shown"
       class="indicator-item badge badge-neutral font-bold shadow-lg border-white/20 z-10 mr-2"
     >
-      {{ value }}
+      {{ value===null ? '*' : value }}
     </span>
 
     <figure class="card-figure relative shadow-xl transition-transform duration-300 group-hover:shadow-2xl">
