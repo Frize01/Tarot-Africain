@@ -4,28 +4,58 @@
       <slot name="discards" />
     </div>
 
+    <div class="table-felt"
+      :class="{ 'felt-mobile-landscape': (isSmallScreen || isMobile) && isLandscape }">
+      <div class="felt-inner" />
+    </div>
+
+    <MyFelt
+      :color="'#ffffff'"
+      :lifePoints="10"
+      :foldsMade="2"
+      :foldsAnnounced="3"
+    />
+
     <div class="opponents-container">
       <div
-        v-for="(seat, index) in currentSeats"
+        v-for="({ seat, seatStyle, player }, index) in seatsWithPlayers"
         :key="seat"
         class="opponent"
-        :class="seat"
+        :style="seatStyle"
       >
         <slot :name="`player-${seat}`" :seatIndex="index">
           <OpponentHand
-            :count="nbCardsPerPlayer"
-            :cardWidth="cardWidth"
+            :count="player?.cardCount ?? nbCardsPerPlayer"
             :rotation="SEAT_ROTATIONS[seat]"
           />
         </slot>
       </div>
+
+      <div
+        v-for="({ seat, player }) in seatsWithPlayers"
+        :key="`avatar-${seat}`"
+        class="avatar-wrapper"
+        :style="avatarLayout?.[seat]"
+      >
+        <Avatar
+          :name="player.name"
+          :color="player.color"
+          :size="'xl'"
+          :lifePoints="player.lifePoints ||10"
+          :foldsMade="player.foldsMade"
+          :foldsAnnounced="player.foldsAnnounced"
+          :imageUrl="player.imageUrl  || 'https://randomuser.me/api/portraits/men/75.jpg'"
+        />
+      </div>
     </div>
 
-    <div class="hand">
+    <div class="hand" :class="{ 'hand-mobile-landscape': isLandscape }">
+      <!-- ajouter ca si besoin :cardBorderColor="props.myColor" -->
       <CardHand
         :cards="myHand"
         :isMyTurn="true"
         @play-card="card => $emit('play-card', card)"
+
       />
     </div>
 
@@ -34,53 +64,54 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, toRef } from 'vue'
 import type { Card } from '../tarot_africain/models/Card'
 import CardHand from '@/modules/components/CardHand.vue'
 import OpponentHand from '@/modules/components/OpponentHand.vue'
+import Avatar from '@/components/Avatar.vue'
+import MyFelt from '@/modules/components/MyFelt.vue'
+import { useOrientation } from '@/composables/useOrientation'
+import { useSeatLayout } from '@/composables/useSeatLayout'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useAvatarLayout } from '@/composables/useAvatarLayout'
 
-// ── Props & emits ──────────────────────────────────────────────
+const { isLandscape } = useOrientation()
+const { isSmallScreen, isDesktop, isMobile } = useBreakpoint()
+const { threePlayerLayout, fourPlayerLayout, fivePlayerLayout } = useAvatarLayout()
+
 const props = defineProps<{
   numPlayers: number
   nbCardsPerPlayer: number
   myHand: Card[]
+  myColor?: string
+  opponents: {
+    id: string
+    name: string
+    color: string
+    cardCount: number
+    lifePoints?: number
+    foldsMade?: number
+    foldsAnnounced?: number
+    imageUrl?: string
+  }[]
 }>()
 
 defineEmits<{ (e: 'play-card', card: Card): void }>()
 
-// ── Responsive card width ──────────────────────────────────────
-const BREAKPOINTS = [
-  { maxWidth: 480, width: 50 },
-  { maxWidth: 900, width: 60 },
-] satisfies { maxWidth: number; width: number }[]
-const CARD_WIDTH_DEFAULT = 80
-
-const windowWidth = ref(window.innerWidth)
-const onResize = () => { windowWidth.value = window.innerWidth }
-onMounted(() => window.addEventListener('resize', onResize))
-onUnmounted(() => window.removeEventListener('resize', onResize))
-
-const cardWidth = computed(() =>
-  BREAKPOINTS.find(b => windowWidth.value < b.maxWidth)?.width ?? CARD_WIDTH_DEFAULT
+const { seatsWithPlayers, SEAT_ROTATIONS } = useSeatLayout(
+  toRef(props, 'numPlayers'),
+  toRef(props, 'opponents')
 )
 
-// ── Seat layout ────────────────────────────────────────────────
-const SEAT_CONFIGURATIONS: Record<number, string[]> = {
-  2: ['seat-top'],
-  3: ['seat-left', 'seat-right'],
-  4: ['seat-left', 'seat-top', 'seat-right'],
-  5: ['seat-left', 'seat-top-left', 'seat-top-right', 'seat-right'],
-}
+const avatarLayout = computed(() => {
+  switch (props.numPlayers) {
+    case 3: return threePlayerLayout.value
+    case 4: return fourPlayerLayout.value
+    case 5: return fivePlayerLayout.value
+    default: return fourPlayerLayout.value
+  }
+})
 
-const SEAT_ROTATIONS: Record<string, string> = {
-  'seat-top':       '180deg',
-  'seat-top-left':  '180deg',
-  'seat-top-right': '180deg',
-  'seat-left':      '90deg',
-  'seat-right':     '270deg',
-}
-
-const currentSeats = computed(() => SEAT_CONFIGURATIONS[props.numPlayers] ?? [])
 </script>
 
 <style scoped>
@@ -104,12 +135,17 @@ const currentSeats = computed(() => SEAT_CONFIGURATIONS[props.numPlayers] ?? [])
 
 .hand {
   position: absolute;
-  bottom: -60px;
+  bottom: -25px;
   left: 50%;
   translate: -50%;
   width: 100%;
   max-width: 550px;
   z-index: 20;
+  transition: bottom 0.3s ease;
+}
+
+.hand.hand-mobile-landscape {
+  bottom: -40px;
 }
 
 .opponents-container {
@@ -123,22 +159,9 @@ const currentSeats = computed(() => SEAT_CONFIGURATIONS[props.numPlayers] ?? [])
   pointer-events: auto;
 }
 
-/* positions */
-.seat-top       { left: 50%; top: -2%;  translate: -50%; }
-.seat-left      { left: -3%;  top: 50%; translate: 0 -50%; }
-.seat-right     { right: -3%; top: 50%; translate: 0 -50%; }
-.seat-top-left  { left: 22%; top: -2%; }
-.seat-top-right { right: 22%; top: -2%; }
-
-/* rotationer sur mobile (pas sur du mot) */
-@media (max-width: 900px) and (orientation: portrait) {
-  .table-environment {
-    width: 100dvh;
-    height: 100vw;
-    position: absolute;
-    inset: 50% auto auto 50%;
-    translate: -50% -50%;
-    rotate: 90deg;
-  }
+.avatar-wrapper {
+  position: absolute;
+  z-index: 10;
+  pointer-events: auto;
 }
 </style>

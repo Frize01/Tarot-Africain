@@ -10,6 +10,7 @@ export class Player {
     public readonly id: string,
     public readonly name: string,
     public readonly color: string,
+    public readonly imageUrl: string,
     initialLives: number
   ) {
     this.lives = initialLives

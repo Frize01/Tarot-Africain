@@ -12,34 +12,52 @@ import RoomsAvailable from '@/modules/components/RoomsAvailable.vue'
 import DungeonSection from '@/components/DungeonSection.vue'
 import ReturnBtn from '@/components/ReturnBtn.vue'
 
+import { useLobbyStore } from '../stores/useLobbyStore'
+
 const router = useRouter()
+const lobbyStore = useLobbyStore()
 
 const props = defineProps<{ gameId: string }>()
 const game = computed(() => GAMES_DATA[props.gameId as keyof typeof GAMES_DATA])
+
+async function handleCreateRoom() {
+  await lobbyStore.createRoom("Joueur 1", "#FF5733")
+  router.push(`/tarot_africain/lobby/${lobbyStore.roomId}`)
+}
+
+async function handleJoinRoomWithCode(joinCode: string) {
+  if (!joinCode) return
+  const code = joinCode.trim().toUpperCase()
+  const randomId = Math.floor(Math.random() * 100)
+  await lobbyStore.joinRoom(code, `Joueur ${randomId}`, "#33FF57")
+  router.push(`/tarot_africain/lobby/${code}`)
+}
 
 // TODO: a faire dans le back
 function generationGameId(){
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
-// TODO: a faire dans le back
-function handleCreateRoom() {
-  const newGameId = generationGameId()
-  router.push(`/tarot_africain/lobby/${newGameId}`)
-}
+// // TODO: a faire dans le back
+// function handleCreateRoom() {
+//   const newGameId = generationGameId()
+//   router.push(`/tarot_africain/lobby/${newGameId}`)
+// }
 
-// TODO: a faire dans le back, + verif code existe + valide
-function handleJoinRoomWithCode(joinCode: string) {
-  if (!joinCode) return
-  const regex = /^[A-Z0-9]{6}$/
-  let code = joinCode.trim().toUpperCase()
-  if (!regex.test(code)) {
-    alert('Code de salle invalide. Veuillez entrer un code à 6 caractères alphanumériques en majuscules.')
-    return
-  } else{
-    router.push(`/tarot_africain/lobby/${code}`)
-  }
-}
+// // TODO: a faire dans le back, + verif code existe + valide
+// function handleJoinRoomWithCode(joinCode: string) {
+//   if (!joinCode) return
+//   const regex = /^[A-Z0-9]{6}$/
+//   let code = joinCode.trim().toUpperCase()
+//   if (!regex.test(code)) {
+//     alert('Code de salle invalide. Veuillez entrer un code à 6 caractères alphanumériques en majuscules.')
+//     return
+//   } else{
+//     router.push(`/tarot_africain/lobby/${code}`)
+//   }
+// }
+
+
 
 // TODO: socket pour rejoindre une room publique existante (sans code)
 function handleJoinPublicRoom(id: string) {
@@ -67,7 +85,7 @@ function handleJoinPublicRoom(id: string) {
             </span>
           </div>
 
-          <p class="mt-8 text-white/60 leading-relaxed italic max-w-xl">{{ game.description }}</p>
+          <p class="mt-8 text-white leading-relaxed italic max-w-xl">{{ game.description }}</p>
 
         </section>
       </div>

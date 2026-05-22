@@ -4,6 +4,10 @@ import { Player } from '../models/Player'
 import { Card } from '../models/Card'
 import { Phase } from '../models/Phase'
 
+import { api, echo } from '@/api/mockApi'
+import { useLobbyStore } from './useLobbyStore'
+
+
 // type Phase = 'rolling' | 'dealing' | 'announcing' | 'playing' | 'scoring' | 'gameover'
 
 
@@ -48,135 +52,92 @@ export const useGameStore = defineStore('game', {
   },
 
   actions: {
-    // TODO: brancher API (recois joueurs et add champs)
-    // recois joueurs du lobby ajoute champs (vie, annonces ...)
-    initGame(players: { id: string; name: string; color: string }[]) {
-      const config = GAME_CONFIG[players.length]
-      this.players = players.map(p => new Player(p.id, p.name, p.color, config.lives))
-      this.cardsPerPlayer = config.startCards
-      this.currentRound = 0
-      this.phase = Phase.Rolling
-    },
-    // TODO: brancher API (le serveur tire le dé et broadcast le dealer)
-    // choisi distributeur et first joueur
-    setDealer(index: number) {
-      this.dealer = index
-      this.currentPlayerIndex = (index + 1) % this.players.length
-    },
-    // TODO: brancher API (les mains viennent du serveur)
-    // recois les mains du deck store, reset annonces et plis gagnés, set phase à annonce
-    dealCards(hands: Card[][]) {
-      this.players.forEach((p, i) => {
-        p.resetForRound()
-        p.hand = hands[i]
+    initGameListeners(roomId: string) {
+      const lobby = useLobbyStore()
+      const channel = echo.channel(`game.${roomId}`)
+
+      channel.listen('DealerSet', async (data: any) => {
+        this.dealer = data.dealerIndex
+        this.currentPlayerIndex = (data.dealerIndex + 1) % this.players.length
+        this.phase = Phase.Dealing
+
+        // TODO: bouger vers une channel privé
+        const { hand } = await api.deal(roomId, lobby.myId)
+
+        const me = this.players.find(p => p.id === lobby.myId)
+        if (me) me.hand = hand
+        // order
+        // this.players.forEach(p => {
+          // console.log('init hand for', p.name)
+        // })
+        // console.log('dealer = ', this.players[this.dealer].name)
       })
-      this.trick = []
-      this.trickHistory = []
-      this.phase = Phase.Announcing
-      this.currentPlayerIndex = (this.dealer + 1) % this.players.length
-    },
-    // TODO: appel API, le serveur valide et broadcast
-    // gestion des annonces et check interdiction last
-    announce(playerId: string, count: number): boolean {
-      const player = this.players.find(p => p.id === playerId)
-      if (!player) return false
 
-      const isLast = this.players.filter(p => !p.hasAnnounced).length === 1
-      if (isLast) {
-        const forbidden = this.totalCardsThisRound - this.totalAnnounced
-        if (count === forbidden) return false
-      }
+      channel.listen('CardsDealt', (data: any) => {
+        this.cardsPerPlayer = data.cardsPerPlayer
 
-      player.announced = count
-      this._nextPlayer()
+        // met main vides
+        this.players.forEach(p => {
+          if (p.id !== lobby.myId && (!p.hand || p.hand.length === 0)) {
+            p.hand = Array(data.cardsPerPlayer).fill(null)
+          }
+        })
 
-      if (this.players.every(p => p.hasAnnounced)) {
+        this.phase = Phase.Announcing
+      })
+
+      channel.listen('PlayerAnnounced', (data: any) => {
+        const player = this.players.find(p => p.id === data.playerId)
+        if (player) player.announced = data.count
+        this.currentPlayerIndex = data.nextPlayerIndex
+      })
+
+      channel.listen('AllPlayersAnnounced', () => {
         this.phase = Phase.Playing
-        this.currentPlayerIndex = (this.dealer + 1) % this.players.length
-      }
-      return true
-    },
-    // TODO: appel API, le back broadcast
-    // joue un carte, check si fin de pli, sinon change joueur courant
-    playCard(playerId: string, card: Card, excuseValue?: 0 | 22) {
-      const player = this.players.find(p => p.id === playerId)
-      if (!player) return
-
-      player.hand = player.hand.filter(c => c.id !== card.id)
-      this.trick.push({ playerId, card, excuseValue })
-
-      if (this.trick.length === this.players.length) {
-        this._resolveTrick()
-      } else {
-        this._nextPlayer()
-      }
-    },
-    // TODO: calcule coté back, on reçoit juste le résultat et applique
-    // applique le score du round
-    applyScoring() {
-      this.players.forEach(p => {
-        const diff = Math.abs((p.announced ?? 0) - p.tricksWon)
-        p.lives -= diff
-        if (p.lives < 0) p.lives = 0
       })
 
-      this.roundHistory.push({
-        round: this.currentRound,
-        cardsPerPlayer: this.cardsPerPlayer,
-        results: this.players.map(p => ({
-          id: p.id,
-          announced: p.announced,
-          tricksWon: p.tricksWon,
-          livesLost: p.applyPenalty(),
-        }))
+      channel.listen('CardPlayed', (data: any) => {
+        this.trick.push({ playerId: data.playerId, card: data.card })
+        const player = this.players.find(p => p.id === data.playerId)
+        // retire carte
+        if (player && player.hand) {
+          if (player.id === lobby.myId) {
+            player.hand = player.hand.filter(c => c?.id !== data.card.id)
+          } else {
+            player.hand = player.hand.slice(1)
+          }
+        }
+        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length
       })
 
-      if (this.activePlayers.length <= 1) {
-        this.phase = Phase.GameOver
-        return
-      }
-
-      this._nextRound()
-    },
-    // TODO: supprimer, logique back
-    // check le vainqueur, ajoute historique pli
-    _resolveTrick() {
-      const winner = this.trick.reduce((best, play) => {
-        const val = play.card.getEffectiveValue(play.excuseValue)
-        const bestVal = best.card.getEffectiveValue(best.excuseValue)
-        return val > bestVal ? play : best
+      channel.listen('TrickResolved', (data: any) => {
+        console.log('Trick resolved, winner:', data.winnerId)
+        setTimeout(() => {
+          this.trick = []
+          const winner = this.players.find(p => p.id === data.winnerId)
+          if (winner){
+            winner.tricksWon++
+            this.currentPlayerIndex = this.players.findIndex(p => p.id === data.winnerId)
+          }
+        }, 2000)
       })
+    },
 
-      const winnerPlayer = this.players.find(p => p.id === winner.playerId)
-      if (winnerPlayer) winnerPlayer.tricksWon++
+    async playCard(cardId: number) {
+      const lobby = useLobbyStore()
+      await api.playCard(lobby.roomId, { playerId: lobby.myId, cardId })
+    },
 
-      this.trickHistory.push({ trick: [...this.trick], winnerId: winner.playerId })
-      this.trick = []
-
-      if (this.players.every(p => p.hand.length === 0)) {
-        this.phase = Phase.Scoring
-      } else {
-        this.currentPlayerIndex = this.players.findIndex(p => p.id === winner.playerId)
+    async sendAnnounce(count: number) {
+      const lobby = useLobbyStore()
+      try {
+        const response = await api.announce(lobby.roomId, { playerId: lobby.myId, count })
+        return response.ok
+      } catch (error) {
+        console.error("Erreur critique pendant l'annonce :", error)
+        return false
       }
-    },
-    // TODO: supprimer, logique back
-    // passe manche suivante, change distributeur, reset annonces et plis gagnés
-    _nextRound() {
-      const nextCards = this.roundSequence[this.currentRound]
-      if (!nextCards) {
-        this.phase = Phase.GameOver
-        return
-      }
-      this.cardsPerPlayer = nextCards
-      this.currentRound++
-      this.dealer = (this.dealer - 1 + this.players.length) % this.players.length
-      this.phase = Phase.Dealing
-    },
-    // TODO: supprimer, logique back
-    // change joueurs suivant
-    _nextPlayer() {
-      this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length
-    },
+    }
   }
 })
 

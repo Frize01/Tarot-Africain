@@ -23,8 +23,7 @@ withDefaults(
   <HeroSection
     :image="dungeon"
     :image-mobile="dungeon_small"
-    :image-desktop="dungeon_large"
-    overlay-color="rgba(80, 20, 5, 0.6)">
+    :image-desktop="dungeon_large">
 
     <!-- Shadow-->
     <div v-if="topFade" class="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black to-transparent" />

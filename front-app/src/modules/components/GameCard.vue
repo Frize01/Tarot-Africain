@@ -4,24 +4,31 @@ defineProps<{
   imageFace: string
   imageBack?: string
   shown?: boolean
+  borderColor?: string | null
 }>()
 </script>
 
 <template>
   <div class="indicator-start hover-3d group">
+    <!-- ajouter :class="{ 'border': borderColor? borderColor : 'border-white/20' }"
+     si besoin gérer border color
+    -->
     <span
+
       v-if="shown"
-      class="indicator-item badge badge-neutral font-bold shadow-lg border-white/20 z-10 mr-2"
-    >
+      class="indicator-item badge badge-neutral font-bold shadow-lg border-white/20 z-10 mr-2">
       {{ value===null ? '*' : value }}
     </span>
 
     <figure class="card-figure relative shadow-xl transition-transform duration-300 group-hover:shadow-2xl">
+      <!-- et ajouter ca :style="borderColor ? `border: 4px solid ${borderColor}` : 'border: 4px solid rgba(255,255,255,0.1)'" -->
       <img
         v-if="shown"
         :src="imageFace"
         :alt="String(value)"
         class="w-full h-auto block rounded-lg border border-white/10"
+
+
       />
 
       <img
@@ -42,11 +49,10 @@ defineProps<{
 
 <style scoped>
 .card-figure {
-  width: clamp(80px, 15vw, 110px); /* Légèrement réduit pour l'éventail */
+  width: clamp(70px, 15vw, 110px);
   margin: 0;
 }
 
-/* On garde ton setup pour l'effet 3D si tu l'utilises via CSS externe */
 .hover-3d {
   perspective: 1000px;
 }

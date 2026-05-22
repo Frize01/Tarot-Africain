@@ -27,9 +27,15 @@ const router = createRouter({
       component: () => import('@/modules/tarot_africain/views/Lobby.vue')
     },
     {
+      path: '/tarot_africain/game/:gameId',
+      name: 'TarotAfricainGame',
+      component: () => import('@/modules/tarot_africain/views/Game.vue'),
+      props: true
+    },
+    {
       path: '/test',
       name: 'test',
-      component: () => import('@/modules/tarot_africain/views/test.vue')
+      component: () => import('@/modules/tarot_africain/views/Test.vue')
     },
   ],
 })

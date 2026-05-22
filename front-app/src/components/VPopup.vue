@@ -9,10 +9,6 @@
     >
 
       <div class="flex justify-between items-center mb-6">
-        <!-- <p class="font-serif text-orange-700/60 tracking-[0.3em] text-[10px] uppercase">
-          ᚠ ᚨ ᚱ ᛏ ᛟ
-        </p> -->
-
         <v-button
           aria-label="Fermer le popup"
           size="btn-sm"

@@ -1,19 +1,32 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useOrientation } from '@/composables/useOrientation'
+const { isSmallScreen, isDesktop, isMobile } = useBreakpoint()
+const { isLandscape } = useOrientation()
+
+const cardWidth = computed(() => {
+  if (isDesktop.value) return 120
+  if (isMobile.value && isLandscape.value) return 60
+  if (isLandscape.value) return 60
+  if (isSmallScreen.value) return 60
+  return 70
+})
 
 const props = withDefaults(
   defineProps<{
     count?: number
-    cardWidth?: number
     rotation?: string
   }>(),
-  { count: 5, cardWidth: 45, rotation: '0deg' }
+  { count: 5, rotation: '0deg' }
 )
 
 const cards = computed(() => {
-  const { count, cardWidth: w } = props
-  const angleStep = Math.min(40 / (count - 1), 12)
-  const startAngle = -((count - 1) * angleStep) / 2
+  const { count } = props
+  const w = cardWidth.value
+
+  const angleStep = count > 1 ? Math.min(40 / (count - 1), 12) : 0
+  const startAngle = count > 1 ? -((count - 1) * angleStep) / 2 : 0
 
   return Array.from({ length: count }, (_, i) => {
     const angle = startAngle + i * angleStep
@@ -21,7 +34,7 @@ const cards = computed(() => {
       id: i,
       rotation: angle,
       offsetY: 120 * (1 - Math.cos((angle * Math.PI) / 180)),
-      marginLeft: i > 0 ? `-${w * 0.75}px` : '0',
+      marginLeft: i > 0 ? `-${w * 0.65}px` : '0',
     }
   })
 })
@@ -69,8 +82,8 @@ const cards = computed(() => {
   position: absolute;
   inset: 2px;
   border-radius: 3px;
-  background: #450a0a; /* red-950 */
-  border: 1px solid #d97706; /* amber-600 */
+  background: #450a0a;
+  border: 1px solid #d97706;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,7 +92,7 @@ const cards = computed(() => {
 .card-border {
   position: absolute;
   inset: 4px;
-  border: 1px dashed rgb(180 130 30 / 0.5); /* amber-700/50 */
+  border: 1px dashed rgb(180 130 30 / 0.5);
   border-radius: 2px;
 }
 
