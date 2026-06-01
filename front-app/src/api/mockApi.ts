@@ -265,8 +265,10 @@
       const [card] = hand.splice(cardIdx, 1)
 
       game.trick.push({ playerId, card, excuseValue })
+      const nextPlayerIndex = (game.currentPlayerIndex + 1) % room.players.length
+      game.currentPlayerIndex = nextPlayerIndex
 
-      echo._broadcast(`game.${roomId}`, 'CardPlayed', { playerId, card, excuseValue })
+      echo._broadcast(`game.${roomId}`, 'CardPlayed', { playerId, card, excuseValue,nextPlayerIndex })
 
       if (game.trick.length === room.players.length) {
         const winnerId = resolveTrick(game.trick)
@@ -327,7 +329,19 @@
 
           game.cardsPerPlayer = nextCards
           game.round++
-          game.dealerIndex = (game.dealerIndex - 1 + room.players.length) % room.players.length
+          game.dealerIndex = (game.dealerIndex + 1 + room.players.length) % room.players.length
+          game.currentPlayerIndex = (game.dealerIndex + 1) % room.players.length
+
+          const nextDealerIndex = game.dealerIndex
+          const nextRound = game.round
+
+          setTimeout(() => {
+            echo._broadcast(`game.${roomId}`, 'DealerSet', {
+              dealerIndex: nextDealerIndex,
+              round: nextRound,
+            })
+          }, 3000)
+
         }
       }
     },

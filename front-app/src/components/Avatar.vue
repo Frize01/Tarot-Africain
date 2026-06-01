@@ -35,7 +35,7 @@
       </span>
     </div>
 
-    <div v-if="foldsMade !== null"
+    <div v-if="foldsMade !== undefined && foldsMade !== null"
       class="absolute top-0 border-2 left-0 -translate-x-1/2 -translate-y-1/2 text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center"
       :style="{
         borderColor: color || '#999',
@@ -75,7 +75,7 @@
       x{{ foldsAnnounced }}
     </div> -->
 
-    <div v-if="foldsAnnounced !== null"
+    <div v-if="foldsAnnounced !== undefined && foldsAnnounced !== null"
       class="absolute top-0 border-2 right-0 translate-x-1/4 -translate-y-1/4 text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center"
       :style="{
         borderColor: color || '#999',

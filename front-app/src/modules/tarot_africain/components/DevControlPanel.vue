@@ -79,7 +79,8 @@ const playCard = async (playerId: string) => {
             </template>
 
             <template v-if="gameStore.phase === 'playing'">
-              <button v-if="player.id === gameStore.currentPlayer?.id"
+              <button
+                v-if="player.id === gameStore.currentPlayer?.id && gameStore.phase === 'playing'"
                 @click="playCard(player.id)"
                 class="w-full text-left px-2 py-1 bg-sky-600/10 hover:bg-sky-600 border border-sky-500/30 flex justify-between"
               >

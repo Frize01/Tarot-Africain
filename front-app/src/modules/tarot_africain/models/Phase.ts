@@ -3,6 +3,7 @@ export enum Phase {
   Dealing = 'dealing',
   Announcing = 'announcing',
   Playing = 'playing',
+  Resolving = 'resolving',
   Scoring = 'scoring',
   GameOver = 'gameover',
 }

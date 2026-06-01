@@ -1,61 +1,60 @@
 <template>
   <div class="table-environment">
     <div class="play-area">
-      <slot name="discards" />
+      <TrickOnPlaying
+        :trick="trick"
+        :players="players"
+        :myId="myId"
+        :numPlayers="numPlayers"
+      />
     </div>
 
-    <div class="table-felt"
-      :class="{ 'felt-mobile-landscape': (isSmallScreen || isMobile) && isLandscape }">
+    <div class="table-felt" :class="{ 'felt-mobile-landscape': isMobile && isLandscape }">
       <div class="felt-inner" />
     </div>
 
-    <MyFelt
-      :color="'#ffffff'"
-      :lifePoints="10"
-      :foldsMade="2"
-      :foldsAnnounced="3"
-    />
+    <MyFelt :color="'#ffffff'" :lifePoints="10" :foldsMade="2" :foldsAnnounced="3" />
 
     <div class="opponents-container">
       <div
         v-for="({ seat, seatStyle, player }, index) in seatsWithPlayers"
         :key="seat"
-        class="opponent"
-        :style="seatStyle"
       >
-        <slot :name="`player-${seat}`" :seatIndex="index">
-          <OpponentHand
-            :count="player?.cardCount ?? nbCardsPerPlayer"
-            :rotation="SEAT_ROTATIONS[seat]"
-          />
-        </slot>
-      </div>
+        <!-- opponent -->
+        <div class="opponent" :style="seatStyle">
+          <slot :name="`player-${seat}`" :seatIndex="index">
+            <OpponentHand
+              :count="player?.cardCount ?? nbCardsPerPlayer"
+              :rotation="SEAT_ROTATIONS[seat]"
+            />
+          </slot>
+        </div>
 
-      <div
-        v-for="({ seat, player }) in seatsWithPlayers"
-        :key="`avatar-${seat}`"
-        class="avatar-wrapper"
-        :style="avatarLayout?.[seat]"
-      >
-        <Avatar
-          :name="player.name"
-          :color="player.color"
-          :size="'xl'"
-          :lifePoints="player.lifePoints ||10"
-          :foldsMade="player.foldsMade"
-          :foldsAnnounced="player.foldsAnnounced"
-          :imageUrl="player.imageUrl  || 'https://randomuser.me/api/portraits/men/75.jpg'"
-        />
+        <!-- avatar -->
+        <div
+          v-if="player"
+          class="avatar-wrapper"
+          :style="avatarLayout?.[seat] ?? {}"
+        >
+          <Avatar
+            :name="player.name"
+            :color="player.color"
+            :size="'xl'"
+            :lifePoints="player.lifePoints ?? 10"
+            :foldsMade="player.foldsMade ?? undefined"
+            :foldsAnnounced="player.foldsAnnounced ?? undefined"
+            :imageUrl="player.imageUrl || 'https://randomuser.me/api/portraits/men/75.jpg'"
+          />
+        </div>
       </div>
     </div>
 
-    <div class="hand" :class="{ 'hand-mobile-landscape': isLandscape }">
-      <!-- ajouter ca si besoin :cardBorderColor="props.myColor" -->
+    <!-- player -->
+    <div class="hand" :class="{ 'hand-mobile-landscape': isLandscape, 'is-my-turn': isMyTurn }">
       <CardHand
         :cards="myHand"
-        :isMyTurn="true"
+        :isMyTurn="isMyTurn"
         @play-card="card => $emit('play-card', card)"
-
       />
     </div>
 
@@ -70,13 +69,15 @@ import CardHand from '@/modules/components/CardHand.vue'
 import OpponentHand from '@/modules/components/OpponentHand.vue'
 import Avatar from '@/components/Avatar.vue'
 import MyFelt from '@/modules/components/MyFelt.vue'
+import TrickOnPlaying from '../tarot_africain/components/TrickOnPlaying.vue'
+
 import { useOrientation } from '@/composables/useOrientation'
 import { useSeatLayout } from '@/composables/useSeatLayout'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAvatarLayout } from '@/composables/useAvatarLayout'
 
+const { isMobile } = useBreakpoint()
 const { isLandscape } = useOrientation()
-const { isSmallScreen, isDesktop, isMobile } = useBreakpoint()
 const { threePlayerLayout, fourPlayerLayout, fivePlayerLayout } = useAvatarLayout()
 
 const props = defineProps<{
@@ -84,6 +85,10 @@ const props = defineProps<{
   nbCardsPerPlayer: number
   myHand: Card[]
   myColor?: string
+  isMyTurn: boolean
+  trick: { playerId: string; card: any }[]
+  players: any[]
+  myId: string
   opponents: {
     id: string
     name: string
@@ -124,28 +129,50 @@ const avatarLayout = computed(() => {
   height: 100dvh;
 }
 
-.play-area {
+/* .play-area {
   position: absolute;
   inset: 50% auto auto 50%;
   translate: -50% -50%;
   width: 180px;
   height: 140px;
   border: 1px dashed rgba(255 255 255 / 0.1);
+  z-index: 30;
+  pointer-events: auto;
+} */
+
+.play-area {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  width: 300px;
+  height: 300px;
+  pointer-events: none;
+  z-index: 30;
 }
 
 .hand {
   position: absolute;
-  bottom: -25px;
+  bottom: -60px;
   left: 50%;
   translate: -50%;
   width: 100%;
   max-width: 550px;
   z-index: 20;
-  transition: bottom 0.3s ease;
+  transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+.hand.is-my-turn {
+  bottom: -25px;
+}
+
+/* paysage */
 .hand.hand-mobile-landscape {
-  bottom: -40px;
+  bottom: -120px;
+}
+
+.hand.hand-mobile-landscape.is-my-turn {
+  bottom: -60px;
 }
 
 .opponents-container {
@@ -157,6 +184,7 @@ const avatarLayout = computed(() => {
 .opponent {
   position: absolute;
   pointer-events: auto;
+  transform-origin: center center;
 }
 
 .avatar-wrapper {

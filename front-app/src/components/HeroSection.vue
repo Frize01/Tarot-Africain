@@ -15,13 +15,13 @@ const props = withDefaults(
   }
 )
 
-const { isSmallScreen } = useBreakpoint()
+const { isMobile } = useBreakpoint()
 
 const activeImage = computed(() => {
-  if (isSmallScreen.value && props.imageMobile) {
+  if (isMobile.value && props.imageMobile) {
     return props.imageMobile
   }
-  if (!isSmallScreen.value && props.imageDesktop) {
+  if (!isMobile.value && props.imageDesktop) {
     return props.imageDesktop
   }
   return props.image

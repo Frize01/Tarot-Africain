@@ -5,7 +5,7 @@ import { Card } from '@/modules/tarot_africain/models/Card';
 
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
-const { isSmallScreen } = useBreakpoint()
+const { isMobile } = useBreakpoint()
 
 const props = defineProps<{
   cards: Card[]
@@ -40,9 +40,9 @@ onUnmounted(() => {
 
 const handleCardClick = (card: Card) => {
   if (!props.isMyTurn) return;
-  const isMobile = isSmallScreen; // test desktop
+  // const isMobile = isMobile; // test desktop
 
-  if (isMobile) {
+  if (isMobile.value) {
     if (selectedCardId.value === card.id) {
       emit('play-card', card);
       selectedCardId.value = null;
@@ -63,7 +63,7 @@ const getCardStyle = (index: number, cardId: number) => {
 
   if (isSelected) {
     return {
-      transform: `translateY(-60px) scale(1.2) rotate(0deg)`,
+      transform: `translateY(-60px) scale(1.1) rotate(0deg)`,
       marginLeft: index === 0 ? '0' : '-50px',
       // carte reste les unes en dessous des autres meme qd select
       zIndex: index

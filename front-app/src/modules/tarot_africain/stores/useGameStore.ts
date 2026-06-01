@@ -57,13 +57,20 @@ export const useGameStore = defineStore('game', {
       const channel = echo.channel(`game.${roomId}`)
 
       channel.listen('DealerSet', async (data: any) => {
+        this.trick = []
+          this.players.forEach(p => {
+            p.announced = null
+            p.tricksWon = 0
+            p.hand = []
+          })
+
         this.dealer = data.dealerIndex
+        this.currentRound = data.round ?? this.currentRound
         this.currentPlayerIndex = (data.dealerIndex + 1) % this.players.length
         this.phase = Phase.Dealing
 
         // TODO: bouger vers une channel privé
         const { hand } = await api.deal(roomId, lobby.myId)
-
         const me = this.players.find(p => p.id === lobby.myId)
         if (me) me.hand = hand
         // order
@@ -75,14 +82,11 @@ export const useGameStore = defineStore('game', {
 
       channel.listen('CardsDealt', (data: any) => {
         this.cardsPerPlayer = data.cardsPerPlayer
-
-        // met main vides
         this.players.forEach(p => {
-          if (p.id !== lobby.myId && (!p.hand || p.hand.length === 0)) {
+          if (p.id !== lobby.myId) {
             p.hand = Array(data.cardsPerPlayer).fill(null)
           }
         })
-
         this.phase = Phase.Announcing
       })
 
@@ -107,19 +111,37 @@ export const useGameStore = defineStore('game', {
             player.hand = player.hand.slice(1)
           }
         }
-        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length
+        this.currentPlayerIndex = data.nextPlayerIndex
       })
 
       channel.listen('TrickResolved', (data: any) => {
-        console.log('Trick resolved, winner:', data.winnerId)
+        this.phase = Phase.Resolving
         setTimeout(() => {
           this.trick = []
           const winner = this.players.find(p => p.id === data.winnerId)
-          if (winner){
+          if (winner) {
             winner.tricksWon++
             this.currentPlayerIndex = this.players.findIndex(p => p.id === data.winnerId)
           }
+          this.phase = Phase.Playing
         }, 2000)
+      })
+
+      channel.listen('RoundScored', (data: any) => {
+        this.phase = Phase.Scoring
+        data.results.forEach((result: any) => {
+          const player = this.players.find(p => p.id === result.id)
+          if (player) {
+            player.lives = Math.max(0, player.lives - result.livesLost)
+            player.announced = null
+            player.tricksWon = 0
+          }
+        })
+        this.roundHistory.push(data.results)
+      })
+
+      channel.listen('GameOver', (data: any) => {
+        this.phase = Phase.GameOver
       })
     },
 

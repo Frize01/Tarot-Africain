@@ -44,9 +44,9 @@ const opponents = computed(() => {
     color: p.color,
     imageUrl: p.imageUrl,
     lifePoints: p.lives,
-    foldsMade: p.tricksWon,
     cardCount: p.hand?.length ?? gameStore.cardsPerPlayer,
-    foldsAnnounced: p.announced,
+    foldsMade: p.tricksWon > 0 ? p.tricksWon : undefined,
+    foldsAnnounced: p.announced !== null ? p.announced : undefined,
   }))
 })
 
@@ -118,6 +118,10 @@ const handlePlayCard = async (card) => {
       :nbCardsPerPlayer="gameStore.cardsPerPlayer"
       :myHand="myHand"
       :myColor="me?.color"
+      :isMyTurn="isMyTurn"
+      :trick="gameStore.trick"
+      :players="gameStore.players"
+      :myId="lobbyStore.myId"
       :opponents="opponents"
       @play-card="handlePlayCard"
     />
