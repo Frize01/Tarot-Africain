@@ -24,9 +24,9 @@ const GAMES = Object.values(GAMES_DATA)
 <template>
   <AppNavbar />
 
-  <main>
+  <!-- <main> -->
     <!-- Chateau + Buisson -->
-    <HeroSection :image="castle">
+    <!-- <HeroSection :image="castle">
       <img
         :src="bushCastle"
         alt=""
@@ -54,10 +54,10 @@ const GAMES = Object.values(GAMES_DATA)
           </VButton>
         </div>
       </div>
-    </HeroSection>
+    </HeroSection> -->
 
     <!-- Dungeon / Jeux -->
-    <DungeonSection top-fade bottom-fade vignette>
+    <!-- <DungeonSection top-fade bottom-fade vignette>
       <div class="relative z-10 px-4 py-24 sm:px-8 md:px-16">
         <h2 class="font-luckiest mb-12 mt-12 text-center text-4xl text-white sm:text-5xl">
           Nos Jeux
@@ -75,8 +75,8 @@ const GAMES = Object.values(GAMES_DATA)
           />
         </div>
       </div>
-    </DungeonSection>
-  </main>
+    </DungeonSection> -->
+  <!-- </main> -->
 
   <AppFooter />
 </template>
