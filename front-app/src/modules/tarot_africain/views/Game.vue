@@ -5,6 +5,8 @@ import { useLobbyStore } from '../stores/useLobbyStore'
 import { api } from '@/api/mockApi'
 
 import GameTable from '@/modules/components/GameTable.vue'
+import Test from './test.vue'
+
 import DevControlPanel from '../components/DevControlPanel.vue'
 import Deal from '../components/Deal.vue'
 
@@ -47,6 +49,7 @@ const opponents = computed(() => {
     cardCount: p.hand?.length ?? gameStore.cardsPerPlayer,
     foldsMade: p.tricksWon > 0 ? p.tricksWon : undefined,
     foldsAnnounced: p.announced !== null ? p.announced : undefined,
+    isAlive: p.isAlive
   }))
 })
 
@@ -82,6 +85,8 @@ onMounted(async () => {
     isAlive: true
   }))
 
+  // gameStore.players[0].lives = 1
+
   // et ca uniquement
   gameStore.initGameListeners(lobbyStore.roomId)
 
@@ -111,9 +116,10 @@ const handlePlayCard = async (card) => {
       :cards-count="gameStore.cardsPerPlayer"
       :forbidden-value="forbiddenAnnounceValue"
       @announce="handleSelectAnnounce"
+      :opponents="opponents"
     />
 
-    <GameTable
+    <!-- <GameTable
       :numPlayers="gameStore.players.length"
       :nbCardsPerPlayer="gameStore.cardsPerPlayer"
       :myHand="myHand"
@@ -124,7 +130,20 @@ const handlePlayCard = async (card) => {
       :myId="lobbyStore.myId"
       :opponents="opponents"
       @play-card="handlePlayCard"
-    />
+    /> -->
+
+    <Test
+          :numPlayers="gameStore.players.length"
+      :nbCardsPerPlayer="gameStore.cardsPerPlayer"
+      :myHand="myHand"
+      :myColor="me?.color"
+      :isMyTurn="isMyTurn"
+      :trick="gameStore.trick"
+      :players="gameStore.players"
+      :myId="lobbyStore.myId"
+      :opponents="opponents"
+      @play-card="handlePlayCard"
+      />
 
     <p v-if="errorMessage" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg text-sm font-semibold z-50">
       {{ errorMessage }}

@@ -32,6 +32,12 @@ export class Player {
     return this.lives > 0
   }
 
+  set isAlive(value: boolean) {
+    if (!value) {
+      this.lives = 0
+    }
+  }
+
   get hasAnnounced(): boolean {
     return this.announced !== null
   }

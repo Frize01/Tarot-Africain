@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import GameCard from '@/modules/components/GameCard.vue';
 import { Card } from '@/modules/tarot_africain/models/Card';
-
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
-const { isMobile } = useBreakpoint()
+const { isMobile,isTablet } = useBreakpoint()
 
 const props = defineProps<{
   cards: Card[]
@@ -40,11 +39,11 @@ onUnmounted(() => {
 
 const handleCardClick = (card: Card) => {
   if (!props.isMyTurn) return;
-  // const isMobile = isMobile; // test desktop
 
-  if (isMobile.value) {
+  if ((isMobile.value || isTablet.value) && props.cards.length !== 1) {
     if (selectedCardId.value === card.id) {
       emit('play-card', card);
+      console.log('Played card:', card);
       selectedCardId.value = null;
     } else {
       selectedCardId.value = card.id;
@@ -63,9 +62,8 @@ const getCardStyle = (index: number, cardId: number) => {
 
   if (isSelected) {
     return {
-      transform: `translateY(-60px) scale(1.1) rotate(0deg)`,
+      transform: `translateY(-70px) scale(1.1) rotate(0deg)`,
       marginLeft: index === 0 ? '0' : '-50px',
-      // carte reste les unes en dessous des autres meme qd select
       zIndex: index
     };
   }
@@ -74,72 +72,71 @@ const getCardStyle = (index: number, cardId: number) => {
 
   return {
     transform: `rotate(${rotation}deg) translateY(${vOffset}px)`,
-    marginLeft: index === 0 ? '0' : '-50px',
+    marginLeft: index === 0 ? '0' : '-35px',
     zIndex: index
   };
 };
 </script>
 
-  <template>
-    <div class="african-hand" :class="{ 'my-turn': isMyTurn }">
-      <div class="cards-fan">
-        <!-- <div
-          v-for="(card, index) in sortedCards"
-          :key="card.id"
-          class="card-slot"
-          :style="getCardStyle(index, card.id)"
-          :class="{ 'is-selected': selectedCardId === card.id }"
-        > -->
-        <div
-          v-for="(card, index) in props.cards"
-          :key="card.id"
-          class="card-slot"
-          :style="getCardStyle(index, card.id)"
-          :class="{ 'is-selected': selectedCardId === card.id }"
-        >
-          <!-- pas sur d'ajouter :borderColor="props.cardBorderColor" -->
-          <GameCard
-            :value="card.value"
-            :imageFace="card.image"
-            :shown="true"
-
-            @click="handleCardClick(card)"
-          />
-        </div>
+<template>
+  <div class="african-hand" :class="{ 'my-turn': isMyTurn }">
+    <div class="cards-fan">
+      <div
+        v-for="(card, index) in props.cards"
+        :key="card.id"
+        class="card-slot"
+        :style="getCardStyle(index, card.id)"
+        :class="{ 'is-selected': selectedCardId === card.id }"
+      >
+        <GameCard
+          :value="card.value"
+          :imageFace="card.image"
+          :shown="true"
+          @click="handleCardClick(card)"
+        />
       </div>
     </div>
-  </template>
+  </div>
+</template>
 
-  <style scoped>
-  .african-hand {
-    transition: opacity 0.3s;
-    width: 100%;
-  }
+<style scoped>
+.african-hand {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 
-  .cards-fan {
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    height: 280px;
-  }
+  transform: translateY(25px);
+  opacity: 0.85;
 
-  .card-slot {
-    transition: all 0.25s ease-out;
-    cursor: pointer;
-  }
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
+}
 
-  @media (hover: hover) {
-    .card-slot:hover:not(.is-selected) {
-      transform: translateY(-50px) scale(1.15) rotate(0deg) !important;
-      margin: 0 10px !important;
-    }
-  }
+.african-hand.my-turn {
+  transform: translateY(0);
+  opacity: 1;
+  background: radial-gradient(50% 50% at 50% 100%, rgba(66, 184, 131, 0.2) 0%, transparent 100%);
+}
 
-  .is-selected {
-    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
-  }
+.cards-fan {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 20px;
+}
 
-  .my-turn {
-    background: radial-gradient(50% 50% at 50% 100%, rgba(66, 184, 131, 0.1) 0%, transparent 100%);
+.card-slot {
+  transition: transform 0.25s ease-out, margin 0.25s ease-out;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .card-slot:hover:not(.is-selected) {
+    transform: translateY(-50px) scale(1.15) rotate(0deg) !important;
+    margin: 0 15px !important;
   }
-  </style>
+}
+
+.is-selected {
+  filter: drop-shadow(0 15px 20px rgba(0, 0, 0, 0.4));
+}
+</style>

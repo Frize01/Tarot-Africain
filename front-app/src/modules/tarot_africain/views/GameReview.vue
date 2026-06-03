@@ -101,6 +101,6 @@ function handleJoinPublicRoom(id: string) {
     </div>
   </DungeonSection>
 
-  <AppFooter />
+  <!-- <AppFooter /> -->
 
 </template>

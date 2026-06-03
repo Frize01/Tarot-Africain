@@ -35,18 +35,24 @@ export const useGameStore = defineStore('game', {
 
   getters: {
     // nb carte distribué manche
-    totalCardsThisRound: (state) => state.cardsPerPlayer ,
+    totalCardsThisRound: (state) => state.cardsPerPlayer,
+
     // nb carte annoncé
     totalAnnounced: (state) => state.players.reduce((sum, p) => sum + (p.announced ?? 0), 0),
-    // joueur courant ( plus simple que d'appeler players[xxx] partous)
+
+    // joueur courant
     currentPlayer: (state) => state.players[state.currentPlayerIndex],
-    // joeuurs en vie
+
+    // joueurs en vie
     activePlayers: (state) => state.players.filter(p => p.isAlive),
-    // défini sequence en fonction joueurs (ex si 5 => 4,3,2,1, si 4=>5,4,3,2,1)
+
+    // sequence basé sur survivant
     roundSequence: (state): number[] => {
-      const start = GAME_CONFIG[state.players.length]?.startCards ?? 5
+      const aliveCount = state.players.filter(p => p.isAlive).length
+      const start = GAME_CONFIG[aliveCount as 3 | 4 | 5]?.startCards ?? 5
       return Array.from({ length: start }, (_, i) => start - i)
     },
+
     // check last round
     isLastCardRound: (state) => state.cardsPerPlayer === 1,
   },
@@ -123,6 +129,15 @@ export const useGameStore = defineStore('game', {
             winner.tricksWon++
             this.currentPlayerIndex = this.players.findIndex(p => p.id === data.winnerId)
           }
+
+          const hasCardsLeft = this.currentPlayer && this.currentPlayer.hand && this.currentPlayer.hand.length > 0
+          if (hasCardsLeft) {
+            this.phase = Phase.Playing
+          } else {
+            // attend 'RoundScored' ou 'GameOver'
+            this.phase = Phase.Scoring
+          }
+
           this.phase = Phase.Playing
         }, 2000)
       })
@@ -133,6 +148,12 @@ export const useGameStore = defineStore('game', {
           const player = this.players.find(p => p.id === result.id)
           if (player) {
             player.lives = Math.max(0, player.lives - result.livesLost)
+
+            if (player.lives <= 0) {
+              player.isAlive = false
+              console.log(`[GAME] Le joueur ${player.name} n'a plus de vie ! (isAlive = false)`)
+            }
+
             player.announced = null
             player.tricksWon = 0
           }

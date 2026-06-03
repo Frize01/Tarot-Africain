@@ -1,4 +1,5 @@
 <template>
+
   <div class="table-environment">
     <div class="play-area">
       <TrickOnPlaying

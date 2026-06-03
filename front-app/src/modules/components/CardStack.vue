@@ -1,9 +1,11 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   count: number;
   imageBack: string;
   label?: string;
+  labelOnCard?: string;
 }>();
+
 </script>
 
 <template>
@@ -19,6 +21,10 @@ defineProps<{
         }"
       >
         <img :src="imageBack" alt="Card Back" />
+
+        <div v-if="n === Math.min(count, 5) && labelOnCard" class="absolute right-5 top-4">
+          {{ labelOnCard }}
+        </div>
       </div>
 
       <div v-if="count === 0" class="empty-slot"></div>
@@ -36,7 +42,7 @@ defineProps<{
 
 .cards-container {
   position: relative;
-  width: 60px;  /* Taille réduite pour les piles secondaires */
+  width: 60px;
   height: 85px;
 }
 
