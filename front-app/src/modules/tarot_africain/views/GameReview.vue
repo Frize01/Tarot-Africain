@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { GAMES_DATA } from '../data/games'
+// import { GAMES_DATA } from '../data/games'
 
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppFooter from '@/components/AppFooter.vue'
@@ -16,9 +16,23 @@ import { useLobbyStore } from '../stores/useLobbyStore'
 
 const router = useRouter()
 const lobbyStore = useLobbyStore()
+import apiMethods from '@/api'
 
-const props = defineProps<{ gameId: string }>()
-const game = computed(() => GAMES_DATA[props.gameId as keyof typeof GAMES_DATA])
+const game = ref([])
+
+const getGameDetails = async () => {
+  try {
+    const response = await apiMethods.getGameDetails(1)
+    console.log('Détails du jeu récupérés :', response.data)
+    game.value = response.data
+  } catch (error) {
+    console.error('Erreur lors de la récupération des jeux :', error)
+  }
+}
+
+// const props = defineProps<{ gameId: string }>()
+// const game = computed(() => GAMES_DATA[props.gameId as keyof typeof GAMES_DATA])
+
 
 async function handleCreateRoom() {
   await lobbyStore.createRoom("Joueur 1", "#FF5733")
@@ -34,9 +48,9 @@ async function handleJoinRoomWithCode(joinCode: string) {
 }
 
 // TODO: a faire dans le back
-function generationGameId(){
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
-}
+// function generationGameId(){
+//   return Math.random().toString(36).substring(2, 8).toUpperCase()
+// }
 
 // // TODO: a faire dans le back
 // function handleCreateRoom() {
@@ -64,6 +78,10 @@ function handleJoinPublicRoom(id: string) {
   router.push(`/tarot_africain/lobby/${id}`)
 }
 
+onMounted(() => {
+  getGameDetails()
+})
+
 </script>
 
 <template>
@@ -75,13 +93,14 @@ function handleJoinPublicRoom(id: string) {
         <section>
           <ReturnBtn routeName="home" class="mb-5"/>
           <p class="font-serif text-orange-700/60 tracking-[0.4em] text-xs mb-3 uppercase">ᚠ ᚨ ᚱ ᛏ ᛟ</p>
-          <h1 class="font-luckiest text-6xl md:text-8xl leading-none drop-shadow-2xl">{{ game.title }}</h1>
+          <h1 class="font-luckiest text-6xl md:text-8xl leading-none drop-shadow-2xl">{{ game.name }}</h1>
 
           <div class="flex items-center gap-4 mt-6">
-            <span v-for="tag in game.tags" :key="tag.title"
+            <span v-for="tag in game?.tags" :key="tag.id"
               class="px-3 py-1 rounded-full text-[10px] font-bold border border-white/20"
-              :style="{ color: tag.color, backgroundColor: tag.color + '10' }">
-              {{ tag.title }}
+              :style="{ color: tag.color,
+                backgroundColor: `color-mix(in srgb, ${tag.color}, #000000 80%)`, }">
+              {{ tag.name }}
             </span>
           </div>
 
@@ -90,14 +109,14 @@ function handleJoinPublicRoom(id: string) {
         </section>
       </div>
 
-      <RoomsAvailable
+      <!-- <RoomsAvailable
         class="mt-16"
         :rooms="game.rooms"
         :gameId="gameId"
         @create="handleCreateRoom"
         @joinCode="handleJoinRoomWithCode"
         @joinRoom="handleJoinPublicRoom"
-      />
+      /> -->
     </div>
   </DungeonSection>
 

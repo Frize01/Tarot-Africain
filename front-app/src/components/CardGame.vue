@@ -1,11 +1,12 @@
 <script setup lang="ts">
 interface Tag {
-  title: string
-  color: string
+  id: number,
+  name: string,
+  color: string,
 }
 
 const props = defineProps<{
-  title?: string
+  name?: string
   description?: string
   image?: string
   imageAlt?: string
@@ -29,7 +30,7 @@ const randomRunes = [...RUNES_LIST].sort(() => Math.random() - 0.5).slice(0, 5).
     <div :class="['flex', image ? 'flex-row' : 'flex-col']">
       <figure v-if="image" class="relative shrink-0 w-36 overflow-hidden">
         <img
-          :src="image" :alt="imageAlt || title"
+          :src="image" :alt="imageAlt || name"
           class="w-full h-full object-cover transition-all duration-500 opacity-60 group-hover:opacity-80 group-hover:scale-105"
         />
         <div class="absolute inset-0 bg-gradient-to-r from-transparent to-black/70" />
@@ -45,8 +46,8 @@ const randomRunes = [...RUNES_LIST].sort(() => Math.random() - 0.5).slice(0, 5).
         </div>
 
         <div class="card-body gap-2 pt-3">
-          <h3 class="card-title font-luckiest text-sm tracking-widest text-orange-100/75 transition-colors group-hover:text-orange-50">
-            {{ title }}
+          <h3 class="card-name font-luckiest text-sm tracking-widest text-orange-100/75 transition-colors group-hover:text-orange-50">
+            {{ name }}
           </h3>
 
           <!-- sepparateur -->
@@ -62,14 +63,14 @@ const randomRunes = [...RUNES_LIST].sort(() => Math.random() - 0.5).slice(0, 5).
 
           <div v-if="tags.length" class="flex flex-wrap gap-1.5 mt-1">
             <span
-              v-for="tag in tags" :key="tag.title"
+              v-for="tag in tags" :key="tag.name"
               class="badge badge-sm text-[10px] tracking-wider border"
               :style="{
                 color: tag.color,
                 borderColor: `${tag.color}50`,
                 backgroundColor: `${tag.color}18`
               }"
-            >{{ tag.title }}</span>
+            >{{ tag.name }}</span>
           </div>
         </div>
       </div>

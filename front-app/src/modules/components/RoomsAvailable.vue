@@ -13,7 +13,7 @@ interface Room {
 }
 
 defineProps<{
-  rooms: Room[]
+  rooms: Room[] | null
   gameId: string
 }>()
 

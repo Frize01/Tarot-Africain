@@ -82,6 +82,8 @@ const GAMES = Object.values(GAMES_DATA)
 
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+
 import { useRouter } from 'vue-router'
 
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -92,10 +94,27 @@ import CardGame from '@/components/CardGame.vue'
 import castle2 from '@/asset/CASTLE_2.png'
 import bushCastle from '@/asset/bushCastle.png'
 
-import { GAMES_DATA } from '../modules/tarot_africain/data/games'
-const GAMES = Object.values(GAMES_DATA)
+// import { GAMES_DATA } from '../modules/tarot_africain/data/games'
+// const GAMES = Object.values(GAMES_DATA)
+
+import apiMethods from '@/api'
+const games = ref([])
+
+const getGames = async () => {
+  try {
+    const response = await apiMethods.getGames()
+    console.log('Jeux récupérés :', response.data)
+    games.value = response.data
+  } catch (error) {
+    console.error('Erreur lors de la récupération des jeux :', error)
+  }
+}
 
 const router = useRouter()
+
+onMounted(() => {
+  getGames()
+})
 </script>
 
 <template>
@@ -147,13 +166,13 @@ const router = useRouter()
 
           <div class="mx-auto grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2">
             <CardGame
-              v-for="game in GAMES"
+              v-for="game in games"
               :key="game.id"
-              :title="game.title"
+              :name="game.name"
               :description="game.description"
               :tags="game.tags"
               class="game-card"
-              @click="router.push({ name: game.routeName, params: { id: game.id } })"
+              @click="router.push(`${game.url}/informations`)"
             />
           </div>
         </div>
