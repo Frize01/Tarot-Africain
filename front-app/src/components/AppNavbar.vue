@@ -6,8 +6,11 @@ import { onMounted, onUnmounted } from 'vue'
 import VButton from '@/components/VButton.vue'
 import VInput from '@/components/VInput.vue'
 
+import { useAuth } from '@/composables/useAuth'
+
 import logo from '@/asset/logo_app.png'
 
+const { isLoggedIn, user, logoutUser } = useAuth()
 const router = useRouter()
 const search = ref('')
 
@@ -39,7 +42,7 @@ onUnmounted(() => {
     class="fixed top-0 z-50 w-full transition-all duration-300"
     :class="[
       isScrolled
-        ? 'bg-zinc-900/90 backdrop-blur-md'
+        ? 'bg-black/60 backdrop-blur-md'
         : 'bg-transparent py-4'
     ]"
   >
@@ -116,7 +119,7 @@ onUnmounted(() => {
           style="max-width: 12em;"
         />
 
-        <VButton
+        <VButton v-if="!isLoggedIn"
           ariaLabel="Se connecter"
           class="text-white bg-transparent hover:bg-white/10"
           @click="router.push('/auth')"
@@ -128,6 +131,20 @@ onUnmounted(() => {
             </svg>
           </template>
           Se connecter
+        </VButton>
+
+        <VButton v-else
+          ariaLabel="Mon Compte"
+          class="text-white bg-transparent hover:bg-white/10"
+          @click="router.push('/account')"
+        >
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.9">
+              <circle cx="12" cy="7.25" r="5.73" />
+              <path d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05" />
+            </svg>
+          </template>
+          Mon Compte
         </VButton>
       </div>
 

@@ -3,18 +3,52 @@
 
   import VButton from '@/components/VButton.vue'
   import VInput from '@/components/VInput.vue'
+  import { useRouter } from 'vue-router'
+  import apiMethods from '@/api'
+  import { useAuth } from '@/composables/useAuth'
+
+  const { loginUser } = useAuth()
 
   const firstName = ref('')
   const lastName = ref('')
   const email = ref('')
-  const countryCode = ref('🇫🇷')
-  const phone = ref('')
+  // const countryCode = ref('🇫🇷')
+  // const phone = ref('')
+  const password = ref('')
+
+  const router = useRouter()
+  const errorMessage = ref('')
+
+  async function handleRegister() {
+    errorMessage.value = ''
+    await apiMethods.getCsrfCookie();
+
+    const result = await apiMethods.register(
+      firstName.value,
+      lastName.value,
+      email.value,
+      password.value
+    );
+
+    if (result.success) {
+      const loginResult = await apiMethods.login(email.value, password.value, false);
+
+      if (loginResult.success) {
+        loginUser(loginResult.data.user);
+        router.push('/');
+      } else {
+        errorMessage.value = loginResult.message;
+      }
+    } else {
+      errorMessage.value = result.message;
+    }
+  }
 
 </script>
 
 <template>
   <!-- ── Register ── -->
-  <form class="grid gap-4" @submit.prevent>
+  <form class="grid gap-4" @submit.prevent="handleRegister">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <v-input
         v-model="firstName"
@@ -58,7 +92,7 @@
     </v-input>
 
     <!-- Tel -->
-    <div class="join w-full">
+    <!-- <div class="join w-full">
       <select class="select join-item w-20 sm:w-24 shrink-0 border-white"
       v-model="countryCode">
         <option>🇫🇷</option>
@@ -72,9 +106,19 @@
         autocomplete="tel"
         class="join-item w-full min-w-0 input-bordered border-white"
       />
-    </div>
+    </div> -->
 
-    <v-button
+    <!-- Password -->
+    <v-input
+      v-model="password"
+      type="password"
+      placeholder="Mot de passe"
+      autocomplete="new-password"
+      required
+      class="input-bordered border-white w-full"
+    />
+
+    <v-button @click="handleRegister"
       class="bg-white text-black hover:bg-gray-200"
       fullWidth
     >

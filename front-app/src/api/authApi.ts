@@ -7,7 +7,10 @@ const authApi = axios.create({
       'X-Requested-With': 'XMLHttpRequest',
       'Accept': 'application/json',
   },
-  withCredentials: true
+  withCredentials: true,
+
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 authApi.interceptors.response.use(
@@ -15,6 +18,7 @@ authApi.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status
     if (status === 401) {
+      localStorage.removeItem('user');
       router.push('/auth')
     }
     return Promise.reject(error)

@@ -4,20 +4,39 @@
 
   import VButton from '@/components/VButton.vue'
   import VInput from '@/components/VInput.vue'
+  import { useRouter } from 'vue-router'
+  import { useAuth } from '@/composables/useAuth'
 
+
+  import apiMethods from '@/api'
+
+  const { loginUser } = useAuth()
+
+  const router = useRouter()
   const email = ref('')
   const password = ref('')
   const rememberMe = ref(false)
+  const errorMessage = ref('')
 
-  function handleLogin() {
-    console.log('Login attempt:', { email: email.value, password: password.value, rememberMe: rememberMe.value })
+  async function handleLogin() {
+    errorMessage.value = '';
+
+    await apiMethods.getCsrfCookie();
+
+    const result = await apiMethods.login(email.value, password.value, rememberMe.value);
+
+    if (result.success) {
+      loginUser(result.data.user);
+      router.push('/');
+    } else {
+      errorMessage.value = result.message;
+    }
   }
-
 </script>
 
 <template>
   <!-- ── Login ── -->
-  <form class="grid gap-4" @submit.prevent>
+  <form class="grid gap-4" @submit.prevent="handleLogin">
 
     <VInput
       v-model="email"
@@ -48,7 +67,7 @@
       <a class="link link-hover text-sm">Mot de passe oublié?</a>
     </div>
 
-    <v-button
+    <v-button @click="handleLogin"
       class="bg-white text-black hover:bg-gray-200"
       fullWidth
     >

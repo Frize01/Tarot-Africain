@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import TransitionOverlay from '@/transitions/TransitionOverlay.vue'
 </script>
 
 <template>
+  <TransitionOverlay />
+
   <RouterView />
 </template>

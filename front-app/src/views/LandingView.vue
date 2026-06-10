@@ -91,11 +91,9 @@ import VButton from '@/components/VButton.vue'
 import ParallaxLayer from '@/components/ParallaxLayer.vue'
 import DungeonSection from '@/components/DungeonSection.vue'
 import CardGame from '@/components/CardGame.vue'
-import castle2 from '@/asset/CASTLE_2.png'
-import bushCastle from '@/asset/bushCastle.png'
 
-// import { GAMES_DATA } from '../modules/tarot_africain/data/games'
-// const GAMES = Object.values(GAMES_DATA)
+import castle2 from '@/asset/CASTLE_2.webp'
+import bushCastle from '@/asset/bushCastle.webp'
 
 import apiMethods from '@/api'
 const games = ref([])
@@ -103,7 +101,6 @@ const games = ref([])
 const getGames = async () => {
   try {
     const response = await apiMethods.getGames()
-    console.log('Jeux récupérés :', response.data)
     games.value = response.data
   } catch (error) {
     console.error('Erreur lors de la récupération des jeux :', error)
@@ -127,7 +124,7 @@ onMounted(() => {
       <img
         :src="castle2"
         alt="Château arrière-plan"
-        class="fixed inset-0 w-full h-full object-cover object-bottom z-0"
+        class="fixed inset-0 w-full h-full object-cover object-bottom z-0 brightness-75"
       />
 
       <ParallaxLayer :speed="0.3" direction="up" class="absolute inset-0 w-full h-full z-10">
