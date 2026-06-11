@@ -19,14 +19,23 @@ const lobbyStore = useLobbyStore()
 import apiMethods from '@/api'
 
 const game = ref([])
+const rooms = ref([])
 
 const getGameDetails = async () => {
   try {
     const response = await apiMethods.getGameDetails(1)
-    console.log('Détails du jeu récupérés :', response.data)
     game.value = response.data
   } catch (error) {
     console.error('Erreur lors de la récupération des jeux :', error)
+  }
+}
+
+const getAvailableRooms = async () => {
+  try {
+    const response = await apiMethods.getAvailableRooms(1)
+    rooms.value = response.data
+  } catch (error) {
+    console.error('Erreur lors de la récupération des salles disponibles :', error)
   }
 }
 
@@ -34,9 +43,28 @@ const getGameDetails = async () => {
 // const game = computed(() => GAMES_DATA[props.gameId as keyof typeof GAMES_DATA])
 
 
+// async function handleCreateRoom() {
+//   await lobbyStore.createRoom("Joueur 1", "#FF5733")
+//   router.push(`/tarot_africain/lobby/${lobbyStore.roomId}`)
+// }
+
 async function handleCreateRoom() {
-  await lobbyStore.createRoom("Joueur 1", "#FF5733")
-  router.push(`/tarot_africain/lobby/${lobbyStore.roomId}`)
+  try {
+    const response = await apiMethods.createTarotRoom(1)
+
+    if (response.success) {
+      console.log('infos reçues du back :', response.data)
+
+      lobbyStore.roomId = response.data.id
+      lobbyStore.roomCode = response.data.code
+
+      router.push(`/tarot_africain/lobby/${response.data.code}`)
+    } else {
+      console.error("Erreur renvoyée par le serveur :", response.message)
+    }
+  } catch (error) {
+    console.error("Erreur lors de la création du salon :", error)
+  }
 }
 
 async function handleJoinRoomWithCode(joinCode: string) {
@@ -80,6 +108,7 @@ function handleJoinPublicRoom(id: string) {
 
 onMounted(() => {
   getGameDetails()
+  getAvailableRooms()
 })
 
 </script>
@@ -109,14 +138,14 @@ onMounted(() => {
         </section>
       </div>
 
-      <!-- <RoomsAvailable
+      <RoomsAvailable
         class="mt-16"
-        :rooms="game.rooms"
-        :gameId="gameId"
+        :rooms="rooms"
+        :gameId="1"
         @create="handleCreateRoom"
         @joinCode="handleJoinRoomWithCode"
         @joinRoom="handleJoinPublicRoom"
-      /> -->
+      />
     </div>
   </DungeonSection>
 

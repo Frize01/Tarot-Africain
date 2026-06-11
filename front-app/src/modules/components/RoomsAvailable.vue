@@ -3,18 +3,41 @@ import { ref } from 'vue'
 import VButton from '@/components/VButton.vue'
 import VInput from '@/components/VInput.vue'
 
-interface Room {
-  id: string;
-  name: string;
-  players: number;
-  max: number;
-  open: boolean;
-  private: boolean
+interface Player {
+  id: number
+  firstname: string
+  lastname: string
+  email: string
+  pivot: {
+    room_id: string
+    user_id: number
+    position: number
+    is_ready: boolean
+    is_host: boolean
+  }
 }
 
-defineProps<{
+interface Room {
+  id: string
+  code: string
+  status: string
+  game_id: number
+  players: Player[]
+  is_public: boolean
+  game: {
+    id: number
+    name: string
+    slug: string
+    min_players: number
+    max_players: number
+    url: string
+    description: string
+  }
+}
+
+const props = defineProps<{
   rooms: Room[] | null
-  gameId: string
+  gameId: number
 }>()
 
 const emit = defineEmits<{
@@ -31,6 +54,12 @@ const handleJoinByCode = () => {
     roomCode.value = ''
   }
 }
+
+const getHostName = (room: Room) => {
+  if (!room.players) return 'Inconnu'
+  const hostPlayer = room.players.find(player => player.pivot?.is_host)
+  return hostPlayer ? `Room de "${hostPlayer.firstname} ${hostPlayer.lastname}"` : 'Salon Public'
+}
 </script>
 
 <template>
@@ -39,7 +68,6 @@ const handleJoinByCode = () => {
       <h3 class="font-luckiest text-orange-700/60 text-[16px] tracking-[0.3em] uppercase">Salons</h3>
 
       <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto">
-
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <VInput
             v-model="roomCode"
@@ -65,23 +93,23 @@ const handleJoinByCode = () => {
     </div>
 
     <div class="p-4 flex flex-col gap-2">
-      <button v-for="room in rooms" :key="room.id"
-        :disabled="!room.open"
-        @click="emit('joinRoom', room.id)"
-        class="relative flex items-center justify-between px-4 py-3 rounded-lg border border-white/5 bg-white/[0.03] transition-all overflow-hidden group"
-        :class="room.open ? 'hover:border-orange-500/40' : 'opacity-40 cursor-not-allowed'"
-      >
-        <div class="relative">
-          <p class="text-sm font-bold text-white/90">{{ room.name }}</p>
-          <p class="text-[10px] font-mono opacity-40">{{ room.players }}/{{ room.max }} Joueurs</p>
-        </div>
-        <span class="relative text-[9px] font-black px-2 py-0.5 rounded border"
-              :class="room.open ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'">
-          {{ room.open ? 'OPEN' : 'FULL' }}
-        </span>
-      </button>
+      <template v-for="room in props.rooms" :key="room.id">
+        <button
+          v-if="room && room.is_public"
+          @click="emit('joinRoom', room.code)"
+          class="relative flex items-center justify-between px-4 py-3 rounded-lg border border-white/5 bg-white/[0.03] transition-all overflow-hidden group"
+        >
+          <div class="relative">
+            <p class="text-sm font-bold text-white/90">{{ getHostName(room) }}</p>
 
-      <div v-if="rooms.length === 0" class="py-8 text-center text-white/20 text-xs italic">
+            <p class="text-[10px] font-mono opacity-40">
+              {{ room.players ? room.players.length : 0 }}/{{ room.game.max_players }} Joueurs
+            </p>
+          </div>
+        </button>
+      </template>
+
+      <div v-if="!props.rooms || props.rooms.length === 0" class="py-8 text-center text-white/20 text-xs italic">
         Aucun salon disponible...
       </div>
     </div>

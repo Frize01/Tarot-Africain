@@ -2,8 +2,12 @@ import { apiHandler } from "@/api/utils";
 
 export default {
   // créer salle
-  createTarotRoom() {
-    return apiHandler('post', '/api/rooms');
+  createTarotRoom(gameId: number = 1) {
+    return apiHandler('post', '/api/rooms', { game_id: gameId });
+  },
+
+  makeRoomPublic(roomId: string) {
+    return apiHandler('post', `/api/rooms/${roomId}/open-room`);
   },
 
   // join room avec uuid
@@ -14,6 +18,11 @@ export default {
   // start
   startTarotGame(roomId: string) {
     return apiHandler('post', `/api/rooms/${roomId}/start`);
+  },
+
+  // get all tarot room available
+  getAvailableRooms(gameId: number) {
+    return apiHandler('get', `/api/rooms/${gameId}/available-rooms`);
   },
 
   // ask main
