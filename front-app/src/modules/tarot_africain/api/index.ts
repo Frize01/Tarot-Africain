@@ -11,8 +11,8 @@ export default {
   },
 
   // join room avec uuid
-  joinTarotRoom(roomId: string) {
-    return apiHandler('post', `/api/rooms/${roomId}/join`);
+  joinTarotRoom(roomCode: string) {
+    return apiHandler('post', `/api/rooms/${roomCode}/join`);
   },
 
   // start

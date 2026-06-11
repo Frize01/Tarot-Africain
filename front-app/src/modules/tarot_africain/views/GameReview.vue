@@ -70,36 +70,16 @@ async function handleCreateRoom() {
 async function handleJoinRoomWithCode(joinCode: string) {
   if (!joinCode) return
   const code = joinCode.trim().toUpperCase()
-  const randomId = Math.floor(Math.random() * 100)
-  await lobbyStore.joinRoom(code, `Joueur ${randomId}`, "#33FF57")
-  router.push(`/tarot_africain/lobby/${code}`)
+
+  const response = await apiMethods.joinTarotRoom(code)
+  if (response.success) {
+    lobbyStore.roomId = response.data.id
+    lobbyStore.roomCode = response.data.code
+    router.push(`/tarot_africain/lobby/${code}`)
+  } else {
+    console.error("Erreur join :", response.message)
+  }
 }
-
-// TODO: a faire dans le back
-// function generationGameId(){
-//   return Math.random().toString(36).substring(2, 8).toUpperCase()
-// }
-
-// // TODO: a faire dans le back
-// function handleCreateRoom() {
-//   const newGameId = generationGameId()
-//   router.push(`/tarot_africain/lobby/${newGameId}`)
-// }
-
-// // TODO: a faire dans le back, + verif code existe + valide
-// function handleJoinRoomWithCode(joinCode: string) {
-//   if (!joinCode) return
-//   const regex = /^[A-Z0-9]{6}$/
-//   let code = joinCode.trim().toUpperCase()
-//   if (!regex.test(code)) {
-//     alert('Code de salle invalide. Veuillez entrer un code à 6 caractères alphanumériques en majuscules.')
-//     return
-//   } else{
-//     router.push(`/tarot_africain/lobby/${code}`)
-//   }
-// }
-
-
 
 // TODO: socket pour rejoindre une room publique existante (sans code)
 function handleJoinPublicRoom(id: string) {
