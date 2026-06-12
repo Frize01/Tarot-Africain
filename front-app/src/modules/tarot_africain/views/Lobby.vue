@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { GAMES_DATA } from '../data/games'
 import { useLobbyStore } from '../stores/useLobbyStore'
 import apiMethods from '@/api'
 import { useAuth } from '@/composables/useAuth'
+import { echo } from '@/api/echo'
 
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppFooter from '@/components/AppFooter.vue'
@@ -12,33 +13,33 @@ import QrcodeVue from 'qrcode.vue'
 import DungeonSection from '@/components/DungeonSection.vue'
 import ReturnBtn from '@/components/ReturnBtn.vue'
 import VButton from '@/components/VButton.vue'
+import { useToast } from 'vue-toastification'
 
+const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const lobbyStore = useLobbyStore()
 const { user } = useAuth()
 
-// code url
 const roomCodeUrl = route.params.gameId as string
 const qrUrl = ref(`${window.location.origin}/tarot_africain/lobby/${roomCodeUrl}`)
 
 const game = GAMES_DATA['tarot_africain']
 
-// id rooms
 const makeRoomPublic = async () => {
   if (lobbyStore.roomId) {
     const response = await apiMethods.makeRoomPublic(lobbyStore.roomId)
     if (response.success) {
       lobbyStore.isPublic = true
+      toast.success(`Le salon est désormais public !`)
     } else {
       alert("Erreur : " + response.message)
     }
   } else {
-    console.log("Impossible de rendre public : ID de salon manquant.")
+    toast.error("Impossible de rendre public : ID de salon manquant.")
   }
 }
 
-// start
 const handleStartGame = async () => {
   if (lobbyStore.roomId) {
     const response = await apiMethods.startTarotGame(lobbyStore.roomId)
@@ -53,8 +54,6 @@ onMounted(async () => {
     const response = await apiMethods.joinTarotRoom(roomCodeUrl)
 
     if (response.success) {
-      console.log('Données de la salle synchronisées avec le serveur HTTP')
-
       const currentUserId = user.value?.id
 
       if (!currentUserId) {
@@ -65,12 +64,29 @@ onMounted(async () => {
 
       lobbyStore.initRoomData(response.data, currentUserId)
     } else {
-      console.error("Impossible de rejoindre la salle :", response.message)
+      toast.error("Impossible de rejoindre la salle :", response.message)
       router.push('/tarot_africain/informations')
     }
   } catch (error) {
     console.error("Erreur au chargement du composant Lobby :", error)
   }
+})
+
+onUnmounted(async () => {
+  if (lobbyStore.isHost && lobbyStore.status !== 'starting') {
+    try {
+      console.log("L'host quitte le lobby, fermeture du salon et kick des joueurs...");
+
+      await apiMethods.destroyTarotRoom(lobbyStore.roomId)
+
+      lobbyStore.$reset()
+    } catch (error) {
+      console.error("Erreur lors de la fermeture du salon :", error)
+    }
+  }
+
+  echo.leave(`lobby.${lobbyStore.roomId}`)
+  lobbyStore.isInLobby = false
 })
 </script>
 

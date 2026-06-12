@@ -44,9 +44,24 @@ const emit = defineEmits<{
   (e: 'create'): void
   (e: 'joinCode', code: string): void
   (e: 'joinRoom', id: string): void
+  (e: 'refresh'): void
 }>()
 
 const roomCode = ref('')
+const isRefreshing = ref(false)
+
+// evite le spamclic
+const handleRefreshClick = () => {
+  if (isRefreshing.value) {
+    return
+  }
+  isRefreshing.value = true
+  emit('refresh')
+
+  setTimeout(() => {
+    isRefreshing.value = false
+  }, 1500)
+}
 
 const handleJoinByCode = () => {
   if (roomCode.value.trim()) {
@@ -69,6 +84,19 @@ const getHostName = (room: Room) => {
 
       <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto">
         <div class="flex items-center gap-2 w-full sm:w-auto">
+
+          <VButton
+            @click="handleRefreshClick"
+            class="whitespace-nowrap !py-1 !px-4 !text-[10px] uppercase tracking-wider bg-orange-600/20 hover:bg-orange-600/40 border border-orange-500/30 text-orange-400 transition-all !h-9"
+          >
+            <svg width="16px" height="16px" viewBox="-0.45 0 60.369 60.369" xmlns="http://www.w3.org/2000/svg" class="fill-current">
+              <g id="Group_63" data-name="Group 63" transform="translate(-446.571 -211.615)">
+                <path id="Path_54" data-name="Path 54" d="M504.547,265.443h-9.019a30.964,30.964,0,0,0-29.042-52.733,1.5,1.5,0,1,0,.792,2.894,27.955,27.955,0,0,1,25.512,48.253l0-10.169h-.011a1.493,1.493,0,0,0-2.985,0h0v13.255a1.5,1.5,0,0,0,1.5,1.5h13.256a1.5,1.5,0,1,0,0-3Z" fill="currentColor"/>
+                <path id="Path_55" data-name="Path 55" d="M485.389,267.995a27.956,27.956,0,0,1-25.561-48.213l0,10.2h.015a1.491,1.491,0,0,0,2.978,0h.007V216.791a1.484,1.484,0,0,0-1.189-1.532l-.018-.005a1.533,1.533,0,0,0-.223-.022c-.024,0-.046-.007-.07-.007H448.071a1.5,1.5,0,0,0,0,3h8.995a30.963,30.963,0,0,0,29.115,52.664,1.5,1.5,0,0,0-.792-2.894Z" fill="currentColor"/>
+              </g>
+            </svg>
+          </VButton>
+
           <VInput
             v-model="roomCode"
             placeholder="Code privé..."

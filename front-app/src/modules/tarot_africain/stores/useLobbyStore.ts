@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import { echo } from '@/api/echo'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 export const useLobbyStore = defineStore('lobby', {
   state: () => ({
@@ -9,6 +12,7 @@ export const useLobbyStore = defineStore('lobby', {
     myId: null as number | string | null,
     isHost: false,
     isPublic: false,
+    isInLobby: false,
     status: 'waiting' as 'waiting' | 'ready' | 'starting',
   }),
 
@@ -17,7 +21,6 @@ export const useLobbyStore = defineStore('lobby', {
       echo.leave(`lobby.${roomId}`)
 
       echo.join(`lobby.${roomId}`)
-
         .here((users: any[]) => {
           console.log('Utilisateurs connectés au salon :', users)
 
@@ -42,6 +45,7 @@ export const useLobbyStore = defineStore('lobby', {
               lastname: user.lastname,
               pivot: { is_host: user.isHost }
             })
+            toast.success(`${user.firstname} a rejoint le salon !`)
           }
 
           this.checkStatus()
@@ -50,13 +54,24 @@ export const useLobbyStore = defineStore('lobby', {
         .leaving((user: any) => {
           console.log(`${user.firstname} a quitté le salon.`)
 
-          this.players = this.players.filter(p => p.id !== user.id)
+          if (user.isHost) {
+            toast.error("L'hôte a fermé le salon. Vous avez été éjecté.")
 
+            echo.leave(`lobby.${this.roomId}`)
+            this.$reset()
+
+            router.push('/tarot_africain/informations')
+            return
+          }
+
+          this.players = this.players.filter(p => p.id !== user.id)
+          toast.info(`${user.firstname} a quitté le salon.`)
           this.checkStatus()
         })
 
         .listen('.GameStarted', () => {
           this.status = 'starting'
+          toast.warning("La partie commence, préparez-vous !")
         })
     },
 
@@ -73,6 +88,7 @@ export const useLobbyStore = defineStore('lobby', {
       this.roomCode = roomData.code
       this.myId = currentUserId
       this.isPublic = roomData.is_public || false
+      this.isInLobby = true
 
       const me = roomData.players?.find((p: any) => p.id === currentUserId)
       this.isHost = me?.pivot?.is_host || false

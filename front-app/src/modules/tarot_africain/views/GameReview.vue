@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-// import { GAMES_DATA } from '../data/games'
 
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppFooter from '@/components/AppFooter.vue'
@@ -21,6 +20,7 @@ import apiMethods from '@/api'
 const game = ref([])
 const rooms = ref([])
 
+// information du tarot afriacain
 const getGameDetails = async () => {
   try {
     const response = await apiMethods.getGameDetails(1)
@@ -30,6 +30,7 @@ const getGameDetails = async () => {
   }
 }
 
+// liste les rooms
 const getAvailableRooms = async () => {
   try {
     const response = await apiMethods.getAvailableRooms(1)
@@ -39,15 +40,7 @@ const getAvailableRooms = async () => {
   }
 }
 
-// const props = defineProps<{ gameId: string }>()
-// const game = computed(() => GAMES_DATA[props.gameId as keyof typeof GAMES_DATA])
-
-
-// async function handleCreateRoom() {
-//   await lobbyStore.createRoom("Joueur 1", "#FF5733")
-//   router.push(`/tarot_africain/lobby/${lobbyStore.roomId}`)
-// }
-
+// creer room
 async function handleCreateRoom() {
   try {
     const response = await apiMethods.createTarotRoom(1)
@@ -67,6 +60,7 @@ async function handleCreateRoom() {
   }
 }
 
+// join room
 async function handleJoinRoomWithCode(joinCode: string) {
   if (!joinCode) return
   const code = joinCode.trim().toUpperCase()
@@ -81,7 +75,7 @@ async function handleJoinRoomWithCode(joinCode: string) {
   }
 }
 
-// TODO: socket pour rejoindre une room publique existante (sans code)
+// join public room
 function handleJoinPublicRoom(id: string) {
   router.push(`/tarot_africain/lobby/${id}`)
 }
@@ -125,6 +119,7 @@ onMounted(() => {
         @create="handleCreateRoom"
         @joinCode="handleJoinRoomWithCode"
         @joinRoom="handleJoinPublicRoom"
+        @refresh="getAvailableRooms"
       />
     </div>
   </DungeonSection>

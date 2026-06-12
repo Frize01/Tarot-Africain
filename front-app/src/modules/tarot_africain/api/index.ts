@@ -10,6 +10,10 @@ export default {
     return apiHandler('post', `/api/rooms/${roomId}/open-room`);
   },
 
+  destroyTarotRoom(roomId: string | number) {
+    return apiHandler('delete', `/api/rooms/${roomId}`);
+  },
+
   // join room avec uuid
   joinTarotRoom(roomCode: string) {
     return apiHandler('post', `/api/rooms/${roomCode}/join`);
