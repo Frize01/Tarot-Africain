@@ -115,7 +115,6 @@ onMounted(() => {
       <RoomsAvailable
         class="mt-16"
         :rooms="rooms"
-        :gameId="1"
         @create="handleCreateRoom"
         @joinCode="handleJoinRoomWithCode"
         @joinRoom="handleJoinPublicRoom"

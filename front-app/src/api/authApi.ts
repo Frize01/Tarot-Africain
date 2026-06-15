@@ -1,5 +1,8 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
 import router from '@/router';
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 const authApi = axios.create({
   baseURL: import.meta.env.VITE_API_ROOT,
@@ -19,7 +22,9 @@ authApi.interceptors.response.use(
     const status = error.response?.status
     if (status === 401) {
       localStorage.removeItem('user');
+      toast.warning("Merci de vous connecter pour continuer")
       router.push('/auth')
+
     }
     return Promise.reject(error)
   }

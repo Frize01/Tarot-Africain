@@ -37,7 +37,6 @@ interface Room {
 
 const props = defineProps<{
   rooms: Room[] | null
-  gameId: number
 }>()
 
 const emit = defineEmits<{

@@ -91,7 +91,7 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <AppNavbar />
+  <!-- <AppNavbar /> -->
   <DungeonSection vignette>
     <div class="flex items-center justify-center px-4 mt-32">
       <div class="grid md:grid-cols-2 gap-8 max-w-4xl w-full items-stretch">
@@ -160,5 +160,5 @@ onUnmounted(async () => {
       </div>
     </div>
   </DungeonSection>
-  <AppFooter />
+  <!-- <AppFooter /> -->
 </template>
