@@ -118,7 +118,7 @@
       class="input-bordered border-white w-full"
     />
 
-    <v-button @click="handleRegister"
+    <v-button type="submit"
       class="bg-white text-black hover:bg-gray-200"
       fullWidth
     >

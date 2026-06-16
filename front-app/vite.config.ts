@@ -51,14 +51,20 @@ export default defineConfig({
   },
 
   server: {
-    port: 4000,
+    port: 9999,
     proxy: {
       '/api': {
-        target: 'http://localhost:9999',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/sanctum': {
-        target: 'http://localhost:9999',
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/broadcasting': { target: 'http://localhost:8000', changeOrigin: true },
+      '/app': {
+        target: 'http://localhost:8080',
+        ws: true,
         changeOrigin: true,
       },
     },
