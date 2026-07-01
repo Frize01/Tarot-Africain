@@ -3,19 +3,29 @@ import { useParallax } from '@/composables/useParallax'
 
 defineOptions({ inheritAttrs: false })
 
-const props = withDefaults(defineProps<{
-  speed?: number
-  direction?: 'up' | 'down'
-  rootMargin?: string
-}>(), {
-  speed: 0.2,
-  direction: 'up',
-})
+const props = withDefaults(
+  defineProps<{
+    /** Vitesse du calque : 0 = statique, plus la valeur est haute plus ça bouge */
+    speed?: number
+    /** Sens du mouvement par rapport au scroll */
+    direction?: 'up' | 'down'
+    /** rootMargin de l'IntersectionObserver interne */
+    rootMargin?: string
+    /** Coupe l'effet (ex: sur mobile via une prop calculée en amont) */
+    disabled?: boolean
+  }>(),
+  {
+    speed: 0.2,
+    direction: 'up',
+    disabled: false,
+  }
+)
 
 const { elRef } = useParallax({
   speed: () => props.speed,
   direction: () => props.direction,
   rootMargin: props.rootMargin,
+  enabled: () => !props.disabled,
 })
 </script>
 
