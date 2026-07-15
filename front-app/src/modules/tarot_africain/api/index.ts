@@ -24,6 +24,11 @@ export default {
     return apiHandler('post', `/api/rooms/${roomId}/start`);
   },
 
+  // désigne le donneur + prépare la manche (déclenché par le host une fois en jeu)
+  setDealer(roomId: string) {
+    return apiHandler('post', `/api/rooms/${roomId}/dealer`);
+  },
+
   // get all tarot room available
   getAvailableRooms(gameId: number) {
     return apiHandler('get', `/api/rooms/${gameId}/available-rooms`);

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { echo } from '@/api/echo'
+import router from '@/router'
 import { useToast } from 'vue-toastification'
 
 const toast = useToast()
@@ -24,12 +25,15 @@ export const useLobbyStore = defineStore('lobby', {
         .here((users: any[]) => {
           console.log('Utilisateurs connectés au salon :', users)
 
-          this.players = users.map(u => ({
-            id: u.id,
-            firstname: u.firstname,
-            lastname: u.lastname,
-            pivot: { is_host: u.isHost }
-          }))
+          this.players = users
+            .map(u => ({
+              id: u.id,
+              firstname: u.firstname,
+              lastname: u.lastname,
+              position: u.position ?? 0,
+              pivot: { is_host: u.isHost }
+            }))
+            .sort((a, b) => a.position - b.position)
 
           this.checkStatus()
         })
@@ -43,8 +47,10 @@ export const useLobbyStore = defineStore('lobby', {
               id: user.id,
               firstname: user.firstname,
               lastname: user.lastname,
+              position: user.position ?? this.players.length,
               pivot: { is_host: user.isHost }
             })
+            this.players.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
             toast.success(`${user.firstname} a rejoint le salon !`)
           }
 
@@ -53,6 +59,12 @@ export const useLobbyStore = defineStore('lobby', {
 
         .leaving((user: any) => {
           console.log(`${user.firstname} a quitté le salon.`)
+
+          // La partie démarre : l'hôte quitte le lobby pour entrer en jeu, ce n'est
+          // PAS une fermeture de salon. Tout le monde bascule via '.GameStarted'.
+          if (this.status === 'starting') {
+            return
+          }
 
           if (user.isHost) {
             toast.error("L'hôte a fermé le salon. Vous avez été éjecté.")
@@ -72,6 +84,8 @@ export const useLobbyStore = defineStore('lobby', {
         .listen('.GameStarted', () => {
           this.status = 'starting'
           toast.warning("La partie commence, préparez-vous !")
+          // tous les joueurs (host inclus) basculent vers la vue de jeu
+          router.push(`/tarot_africain/game/${this.roomCode}`)
         })
     },
 

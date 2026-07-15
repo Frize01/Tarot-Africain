@@ -44,6 +44,8 @@ const handleStartGame = async () => {
   if (lobbyStore.roomId) {
     const response = await apiMethods.startTarotGame(lobbyStore.roomId)
     if (response.success) {
+      // évite que l'onUnmounted du host détruise le salon pendant la bascule
+      lobbyStore.status = 'starting'
       router.push(`/tarot_africain/game/${roomCodeUrl}`)
     }
   }
@@ -64,7 +66,7 @@ onMounted(async () => {
 
       lobbyStore.initRoomData(response.data, currentUserId)
     } else {
-      toast.error("Impossible de rejoindre la salle :", response.message)
+      toast.error("Impossible de rejoindre la salle : " + (response.message ?? ''))
       router.push('/tarot_africain/informations')
     }
   } catch (error) {
@@ -85,7 +87,12 @@ onUnmounted(async () => {
     }
   }
 
-  echo.leave(`lobby.${lobbyStore.roomId}`)
+  // Quand la partie démarre, on NE quitte PAS le canal de présence : sortir émettrait
+  // un 'member_removed' interprété par les autres comme « l'hôte a fermé le salon ».
+  // On garde l'abonnement lobby pendant la partie (inoffensif) ; il sera reset au prochain lobby.
+  if (lobbyStore.status !== 'starting') {
+    echo.leave(`lobby.${lobbyStore.roomId}`)
+  }
   lobbyStore.isInLobby = false
 })
 </script>

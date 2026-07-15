@@ -1,20 +1,37 @@
 import { defineStore } from 'pinia'
 import { GAME_CONFIG } from '../data/gameConfig'
-import { Player } from '../models/Player'
 import { Card } from '../models/Card'
 import { Phase } from '../models/Phase'
 
-import { api, echo } from '@/api/mockApi'
+import apiMethods from '@/api'
+import { echo } from '@/api/echo'
 import { useLobbyStore } from './useLobbyStore'
 
 
-// type Phase = 'rolling' | 'dealing' | 'announcing' | 'playing' | 'scoring' | 'gameover'
+// Représentation d'un joueur côté jeu (dérivée des joueurs du lobby + état de manche).
+// Les mains adverses sont masquées : on stocke des null tant qu'on ne connaît pas la carte.
+export interface GamePlayer {
+  id: string
+  name: string
+  color: string
+  imageUrl?: string
+  isHost: boolean
+  hand: (Card | null)[]
+  announced: number | null
+  tricksWon: number
+  lives: number
+  isAlive: boolean
+}
+
+// Les ids joueurs viennent du back en string ((string) user->id).
+// On normalise partout pour éviter les comparaisons number/string qui échouent.
+const sameId = (a: unknown, b: unknown) => String(a) === String(b)
 
 
 export const useGameStore = defineStore('game', {
   state: () => ({
     // chaque joueur a un id, name, color, 10 vies, un nombre de pli, ses pli gagnées et sa main
-    players: [] as Player[],
+    players: [] as GamePlayer[],
     // id de celui qui distribue
     dealer: 0,
     // id de qui joue
@@ -31,6 +48,8 @@ export const useGameStore = defineStore('game', {
     trickHistory: [] as any[],
     // résumé ki joué koi
     roundHistory: [] as any[],
+    // rempli à la fin de partie (GameOver)
+    gameOverData: null as { winnerId: string | null; survivors: string[] } | null,
   }),
 
   getters: {
@@ -60,58 +79,61 @@ export const useGameStore = defineStore('game', {
   actions: {
     initGameListeners(roomId: string) {
       const lobby = useLobbyStore()
+
+      // évite les abonnements en double (re-mount, HMR…)
+      echo.leave(`game.${roomId}`)
       const channel = echo.channel(`game.${roomId}`)
 
-      channel.listen('DealerSet', async (data: any) => {
+      channel.listen('.DealerSet', async (data: any) => {
         this.trick = []
-          this.players.forEach(p => {
-            p.announced = null
-            p.tricksWon = 0
-            p.hand = []
-          })
+        this.players.forEach(p => {
+          p.announced = null
+          p.tricksWon = 0
+          p.hand = []
+        })
 
         this.dealer = data.dealerIndex
         this.currentRound = data.round ?? this.currentRound
-        this.currentPlayerIndex = (data.dealerIndex + 1) % this.players.length
+        this.currentPlayerIndex = data.nextPlayerIndex ?? (data.dealerIndex + 1) % this.players.length
         this.phase = Phase.Dealing
 
-        // TODO: bouger vers une channel privé
-        const { hand } = await api.deal(roomId, lobby.myId)
-        const me = this.players.find(p => p.id === lobby.myId)
-        if (me) me.hand = hand
-        // order
-        // this.players.forEach(p => {
-          // console.log('init hand for', p.name)
-        // })
-        // console.log('dealer = ', this.players[this.dealer].name)
+        // chaque client récupère SA main via HTTP (les autres mains ne sont pas exposées)
+        const response = await apiMethods.getTarotHand(roomId)
+        if (response.success) {
+          const hand: Card[] = response.data?.hand ?? []
+          const me = this.players.find(p => sameId(p.id, lobby.myId))
+          if (me) me.hand = hand
+        } else {
+          console.error('Échec de la distribution :', response.message)
+        }
       })
 
-      channel.listen('CardsDealt', (data: any) => {
+      channel.listen('.CardsDealt', (data: any) => {
         this.cardsPerPlayer = data.cardsPerPlayer
         this.players.forEach(p => {
-          if (p.id !== lobby.myId) {
+          if (!sameId(p.id, lobby.myId)) {
             p.hand = Array(data.cardsPerPlayer).fill(null)
           }
         })
         this.phase = Phase.Announcing
       })
 
-      channel.listen('PlayerAnnounced', (data: any) => {
-        const player = this.players.find(p => p.id === data.playerId)
+      channel.listen('.PlayerAnnounced', (data: any) => {
+        const player = this.players.find(p => sameId(p.id, data.playerId))
         if (player) player.announced = data.count
         this.currentPlayerIndex = data.nextPlayerIndex
       })
 
-      channel.listen('AllPlayersAnnounced', () => {
+      channel.listen('.AllPlayersAnnounced', () => {
         this.phase = Phase.Playing
       })
 
-      channel.listen('CardPlayed', (data: any) => {
-        this.trick.push({ playerId: data.playerId, card: data.card })
-        const player = this.players.find(p => p.id === data.playerId)
+      channel.listen('.CardPlayed', (data: any) => {
+        this.trick.push({ playerId: data.playerId, card: data.card, excuseValue: data.excuseValue })
+        const player = this.players.find(p => sameId(p.id, data.playerId))
         // retire carte
         if (player && player.hand) {
-          if (player.id === lobby.myId) {
+          if (sameId(player.id, lobby.myId)) {
             player.hand = player.hand.filter(c => c?.id !== data.card.id)
           } else {
             player.hand = player.hand.slice(1)
@@ -120,34 +142,29 @@ export const useGameStore = defineStore('game', {
         this.currentPlayerIndex = data.nextPlayerIndex
       })
 
-      channel.listen('TrickResolved', (data: any) => {
+      channel.listen('.TrickResolved', (data: any) => {
         this.phase = Phase.Resolving
         setTimeout(() => {
           this.trick = []
-          const winner = this.players.find(p => p.id === data.winnerId)
+          const winner = this.players.find(p => sameId(p.id, data.winnerId))
           if (winner) {
             winner.tricksWon++
-            this.currentPlayerIndex = this.players.findIndex(p => p.id === data.winnerId)
+            this.currentPlayerIndex = this.players.findIndex(p => sameId(p.id, data.winnerId))
           }
 
           const hasCardsLeft = this.currentPlayer && this.currentPlayer.hand && this.currentPlayer.hand.length > 0
-          if (hasCardsLeft) {
-            this.phase = Phase.Playing
-          } else {
-            // attend 'RoundScored' ou 'GameOver'
-            this.phase = Phase.Scoring
-          }
-
-          this.phase = Phase.Playing
+          // si des cartes restent on rejoue, sinon on attend RoundScored / GameOver
+          this.phase = hasCardsLeft ? Phase.Playing : Phase.Scoring
         }, 2000)
       })
 
-      channel.listen('RoundScored', (data: any) => {
+      channel.listen('.RoundScored', (data: any) => {
         this.phase = Phase.Scoring
         data.results.forEach((result: any) => {
-          const player = this.players.find(p => p.id === result.id)
+          const player = this.players.find(p => sameId(p.id, result.id))
           if (player) {
-            player.lives = Math.max(0, player.lives - result.livesLost)
+            // le back fait foi sur les vies restantes
+            player.lives = result.livesRemaining ?? Math.max(0, player.lives - result.livesLost)
 
             if (player.lives <= 0) {
               player.isAlive = false
@@ -161,26 +178,38 @@ export const useGameStore = defineStore('game', {
         this.roundHistory.push(data.results)
       })
 
-      channel.listen('GameOver', (data: any) => {
+      channel.listen('.GameOver', (data: any) => {
         this.phase = Phase.GameOver
+        this.gameOverData = {
+          winnerId: data.winnerId ?? null,
+          survivors: data.survivors ?? [],
+        }
       })
     },
 
-    async playCard(cardId: number) {
+    async playCard(cardId: number, excuseValue: 0 | 22 | null = null) {
       const lobby = useLobbyStore()
-      await api.playCard(lobby.roomId, { playerId: lobby.myId, cardId })
+      const response = await apiMethods.playTarotCard(lobby.roomId, cardId, excuseValue)
+      if (!response.success) {
+        console.error('Impossible de jouer la carte :', response.message)
+      }
+      return response.success
     },
 
     async sendAnnounce(count: number) {
       const lobby = useLobbyStore()
       try {
-        const response = await api.announce(lobby.roomId, { playerId: lobby.myId, count })
-        return response.ok
+        const response = await apiMethods.announceTricks(lobby.roomId, count)
+        // 400 = annonce invalide (règle du dernier / pas votre tour)
+        return response.success
       } catch (error) {
         console.error("Erreur critique pendant l'annonce :", error)
         return false
       }
-    }
-  }
-})
+    },
 
+    leaveGameListeners(roomId: string) {
+      echo.leave(`game.${roomId}`)
+    },
+  },
+})
