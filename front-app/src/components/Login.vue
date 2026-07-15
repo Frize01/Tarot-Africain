@@ -67,7 +67,7 @@
       <a class="link link-hover text-sm">Mot de passe oublié?</a>
     </div>
 
-    <v-button @click="handleLogin"
+    <v-button type="submit"
       class="bg-white text-black hover:bg-gray-200"
       fullWidth
     >
