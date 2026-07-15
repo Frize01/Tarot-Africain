@@ -38,14 +38,26 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header
-    class="fixed top-0 z-50 w-full transition-all duration-300"
-    :class="[
-      isScrolled
-        ? 'bg-black/60 backdrop-blur-md'
-        : 'bg-transparent py-4'
-    ]"
-  >
+  <!--
+    <header
+      class="fixed top-0 z-50 w-full transition-all duration-300"
+      :class="[
+        isScrolled
+          ? 'display:none;'
+          : 'bg-transparent py-4'
+      ]"
+    >-->
+
+
+        <header
+          class="fixed top-0 z-50 w-full transition-all duration-300"
+          :class="[
+          isScrolled
+            ? 'bg-black/60 backdrop-blur-md'
+            : 'bg-transparent py-4'
+        ]"
+        >
+
     <div class="navbar px-4 lg:px-8 min-h-0">
 
       <div class="navbar-start">
