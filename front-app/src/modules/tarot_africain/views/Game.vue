@@ -142,9 +142,24 @@ const handleSelectAnnounce = async (count: number) => {
   if (!success) errorMessage.value = message ?? "Calcul interdit !"
 }
 
+// L'Excuse (value null) vaut 0 ou 22 au choix : on ouvre un sélecteur avant de l'envoyer.
+const pendingExcuse = ref<Card | null>(null)
+
 const handlePlayCard = async (card: any) => {
-  // L'excuse (value null) vaut 0 ou 22 ; sélecteur UI = hors périmètre, on envoie 0 par défaut.
-  const excuseValue = card?.value === null ? 0 : null
+  if (card?.value === null) {
+    pendingExcuse.value = card
+    return
+  }
+  await sendCard(card, null)
+}
+
+const chooseExcuse = async (value: 0 | 22) => {
+  const card = pendingExcuse.value
+  pendingExcuse.value = null
+  if (card) await sendCard(card, value)
+}
+
+const sendCard = async (card: any, excuseValue: 0 | 22 | null) => {
   errorMessage.value = ''
   const { success, message } = await gameStore.playCard(card.id, excuseValue)
   if (!success) errorMessage.value = message ?? 'Impossible de jouer cette carte.'
@@ -198,6 +213,20 @@ const leaveGame = () => {
       :currentPlayerName="gameStore.currentPlayer?.name"
       @play-card="handlePlayCard"
       />
+
+    <div v-if="pendingExcuse && canPlayCard"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      @click.self="pendingExcuse = null">
+      <div class="bg-slate-800 border border-amber-400 rounded-xl px-8 py-6 text-center shadow-2xl">
+        <h2 class="text-xl font-bold mb-1">L'Excuse</h2>
+        <p class="mb-4 text-sm opacity-80">Quelle valeur lui donner ?</p>
+        <div class="flex gap-4 justify-center">
+          <VButton @click="chooseExcuse(0)">0 (la plus faible)</VButton>
+          <VButton @click="chooseExcuse(22)">22 (la plus forte)</VButton>
+        </div>
+        <button class="mt-4 text-sm underline opacity-70" @click="pendingExcuse = null">Annuler</button>
+      </div>
+    </div>
 
     <div v-if="gameStore.phase === 'gameover'"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
