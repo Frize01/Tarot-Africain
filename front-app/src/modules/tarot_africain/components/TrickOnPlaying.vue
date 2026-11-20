@@ -54,6 +54,7 @@ const getSlotStyle = (playerId: string) => {
 
   return {
     transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${isMobile.value ? 0.6 : 0.8})`,
+    zIndex: Math.round(y) + 1000,
   }
 }
 </script>
@@ -66,6 +67,7 @@ const getSlotStyle = (playerId: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
 }
 
 .card-slot {
