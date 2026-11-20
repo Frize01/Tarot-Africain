@@ -85,6 +85,13 @@ export const useGameStore = defineStore('game', {
       const channel = echo.channel(`game.${roomId}`)
 
       channel.listen('.DealerSet', async (data: any) => {
+        // meme ordre que le back
+        if (Array.isArray(data.playerIds) && data.playerIds.length === this.players.length) {
+          const byId = new Map(this.players.map(p => [String(p.id), p]))
+          const ordered = data.playerIds.map((id: any) => byId.get(String(id)))
+          if (ordered.every(Boolean)) this.players = ordered
+        }
+
         this.trick = []
         this.players.forEach(p => {
           p.announced = null

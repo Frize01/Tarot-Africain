@@ -47,6 +47,8 @@ const handleStartGame = async () => {
       // évite que l'onUnmounted du host détruise le salon pendant la bascule
       lobbyStore.status = 'starting'
       router.push(`/tarot_africain/game/${roomCodeUrl}`)
+    } else {
+      toast.error(response.message ?? 'Impossible de lancer la partie.')
     }
   }
 }
