@@ -18,8 +18,10 @@ const emit = defineEmits<{
 
 const selectedCardId = ref<number | null>(null);
 
-watch(() => props.isMyTurn, (newVal) => {
-  if (!newVal) selectedCardId.value = null;
+watch(() => props.cards, (cards) => {
+  if (selectedCardId.value !== null && !cards.some(c => c.id === selectedCardId.value)) {
+    selectedCardId.value = null;
+  }
 });
 
 const handleOutsideClick = (event: MouseEvent) => {
@@ -38,7 +40,11 @@ onUnmounted(() => {
 });
 
 const handleCardClick = (card: Card) => {
-  if (!props.isMyTurn) return;
+  // select card
+  if (!props.isMyTurn) {
+    selectedCardId.value = selectedCardId.value === card.id ? null : card.id;
+    return;
+  }
 
   if ((isMobile.value || isTablet.value) && props.cards.length !== 1) {
     if (selectedCardId.value === card.id) {
