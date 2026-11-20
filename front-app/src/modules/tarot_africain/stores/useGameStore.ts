@@ -68,7 +68,7 @@ export const useGameStore = defineStore('game', {
     // sequence basé sur survivant
     roundSequence: (state): number[] => {
       const aliveCount = state.players.filter(p => p.isAlive).length
-      const start = GAME_CONFIG[aliveCount as 3 | 4 | 5]?.startCards ?? 5
+      const start = GAME_CONFIG[aliveCount as 2 | 3 | 4 | 5]?.startCards ?? 5
       return Array.from({ length: start }, (_, i) => start - i)
     },
 
