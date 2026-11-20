@@ -97,6 +97,17 @@ export const useLobbyStore = defineStore('lobby', {
       }
     },
 
+    // Reprise après refresh sur la vue de jeu (sans repasser par le lobby ni /join)
+    restoreFromGame(room: any, currentUserId: number | string) {
+      this.roomId = room.id
+      this.roomCode = room.code
+      this.myId = currentUserId
+      this.players = room.players
+      this.isHost = room.players.find((p: any) => String(p.id) === String(currentUserId))?.pivot?.is_host ?? false
+      this.status = 'starting'
+      this.isInLobby = false
+    },
+
     initRoomData(roomData: any, currentUserId: number | string) {
       this.roomId = roomData.id
       this.roomCode = roomData.code

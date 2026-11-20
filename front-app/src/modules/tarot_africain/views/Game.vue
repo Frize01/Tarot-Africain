@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { useGameStore, type GamePlayer } from '../stores/useGameStore'
 import { useLobbyStore } from '../stores/useLobbyStore'
 import { Card } from '../models/Card'
+import { Phase } from '../models/Phase'
 import apiMethods from '@/api'
 
 import Test from './Test.vue'
 import Deal from '../components/Deal.vue'
 import VButton from '@/components/VButton.vue'
 
+const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const gameStore = useGameStore()
@@ -69,12 +71,25 @@ const opponents = computed(() => {
 })
 
 onMounted(async () => {
-  // Accès direct / refresh : le lobby store est vide → pas de reprise d'état possible.
-  if (!lobbyStore.roomId || lobbyStore.players.length === 0) {
-    toast.error("Partie introuvable. Rejoignez un salon pour jouer.")
+  // Toujours relire l'état serveur : après un refresh le store est vide,
+  // et même sans refresh ça garantit qu'on part de la vérité du back.
+  const roomCode = (route.params.gameId as string) || lobbyStore.roomCode
+  const res = await apiMethods.getGameState(roomCode)
+  if (!res.success) {
+    toast.error(res.message ?? "Partie introuvable. Rejoignez un salon pour jouer.")
     router.push('/tarot_africain/informations')
     return
   }
+  if (res.data.room.status === 'waiting') {
+    // partie pas encore lancée → retour au lobby
+    router.push(`/tarot_africain/lobby/${roomCode}`)
+    return
+  }
+  lobbyStore.restoreFromGame(res.data.room, res.data.myId)
+  const serverState = res.data.state
+
+  // repart d'un store propre (sinon phase/gameOverData de la partie précédente persistent)
+  gameStore.$reset()
 
   // Construit les joueurs dans l'ordre du back (lobbyStore.players est déjà trié par position).
   gameStore.players = lobbyStore.players.map((p, index): GamePlayer => ({
@@ -91,6 +106,22 @@ onMounted(async () => {
   }))
 
   gameStore.initGameListeners(lobbyStore.roomId)
+
+  if (res.data.gameOver) {
+    // partie terminée (refresh après GameOver) → on réaffiche le résultat
+    gameStore.gameOverData = {
+      winnerId: res.data.gameOver.winnerId ?? null,
+      survivors: res.data.gameOver.survivors ?? [],
+    }
+    gameStore.phase = Phase.GameOver
+    return
+  }
+
+  if (serverState) {
+    // partie déjà en cours (refresh) → on reprend où on en était
+    gameStore.hydrate(serverState, lobbyStore.myId ?? '')
+    return
+  }
 
   // Seul le host déclenche la désignation du donneur, une fois que tout le monde
   // a eu le temps de basculer sur la vue et de s'abonner à game.{id}.

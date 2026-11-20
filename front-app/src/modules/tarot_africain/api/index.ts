@@ -34,6 +34,11 @@ export default {
     return apiHandler('get', `/api/rooms/${gameId}/available-rooms`);
   },
 
+  // reprise après refresh : salon + état de la partie vu par ce joueur
+  getGameState(roomCode: string) {
+    return apiHandler('get', `/api/rooms/${roomCode}/state`);
+  },
+
   // ask main
   getTarotHand(roomId: string) {
     return apiHandler('post', `/api/rooms/${roomId}/deal`);

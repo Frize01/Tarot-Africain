@@ -195,6 +195,32 @@ export const useGameStore = defineStore('game', {
       })
     },
 
+    // Reprise après refresh : applique l'état renvoyé par GET /rooms/{code}/state
+    hydrate(view: any, myId: string | number) {
+      if (Array.isArray(view.playerIds)) {
+        const byId = new Map(this.players.map(p => [String(p.id), p]))
+        const ordered = view.playerIds.map((id: any) => byId.get(String(id)))
+        if (ordered.every(Boolean)) this.players = ordered
+      }
+
+      this.players.forEach(p => {
+        p.lives = view.lives?.[p.id] ?? 0
+        p.isAlive = p.lives > 0
+        p.announced = view.announcements?.[p.id] ?? null
+        p.tricksWon = view.tricksWon?.[p.id] ?? 0
+        p.hand = sameId(p.id, myId)
+          ? (view.myHand ?? [])
+          : Array(view.handCounts?.[p.id] ?? 0).fill(null)
+      })
+
+      this.dealer = view.dealerIndex
+      this.currentPlayerIndex = view.currentPlayerIndex
+      this.currentRound = view.round
+      this.cardsPerPlayer = view.cardsPerPlayer
+      this.trick = view.trick ?? []
+      this.phase = view.phase as Phase
+    },
+
     async playCard(cardId: number, excuseValue: 0 | 22 | null = null) {
       const lobby = useLobbyStore()
       const response = await apiMethods.playTarotCard(lobby.roomId, cardId, excuseValue)
