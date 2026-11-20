@@ -8,7 +8,7 @@
         :style="getSlotStyle(play.playerId)"
       >
         <CardComponent
-          :value="play.card.value"
+          :value="play.card.value ?? play.excuseValue ?? null"
           :imageFace="play.card.image"
           :shown="true"
         />
@@ -23,7 +23,7 @@ import CardComponent from '@/modules/components/GameCard.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const props = defineProps<{
-  trick: { playerId: string; card: any }[]
+  trick: { playerId: string; card: any; excuseValue?: 0 | 22 | null }[]
   players: any[]
   myId: string
   numPlayers: number

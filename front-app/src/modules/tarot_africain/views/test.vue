@@ -94,7 +94,7 @@ const props = defineProps<{
   myHand: Card[]
   myColor?: string
   isMyTurn: boolean
-  trick: { playerId: string; card: any }[]
+  trick: { playerId: string; card: any; excuseValue?: 0 | 22 | null }[]
   players: any[]
   myId: string
   round?: number
