@@ -147,6 +147,10 @@ export const useGameStore = defineStore('game', {
           }
         }
         this.currentPlayerIndex = data.nextPlayerIndex
+
+        if (this.trick.length >= this.players.filter(p => p.isAlive).length) {
+          this.phase = Phase.Resolving
+        }
       })
 
       channel.listen('.TrickResolved', (data: any) => {

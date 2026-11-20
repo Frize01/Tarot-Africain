@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { useGameStore, type GamePlayer } from '../stores/useGameStore'
@@ -139,7 +139,7 @@ onUnmounted(() => {
 const handleSelectAnnounce = async (count: number) => {
   errorMessage.value = ''
   const { success, message } = await gameStore.sendAnnounce(count)
-  if (!success) errorMessage.value = message ?? "Calcul interdit !"
+  if (!success) showError(message ?? "Calcul interdit !")
 }
 
 // L'Excuse (value null) vaut 0 ou 22 au choix : on ouvre un sélecteur avant de l'envoyer.
@@ -159,11 +159,31 @@ const chooseExcuse = async (value: 0 | 22) => {
   if (card) await sendCard(card, value)
 }
 
+// Une seule carte envoyée à la fois (double clic / clic pendant la requête).
+const sending = ref(false)
+
 const sendCard = async (card: any, excuseValue: 0 | 22 | null) => {
+  if (sending.value) return
+  sending.value = true
   errorMessage.value = ''
-  const { success, message } = await gameStore.playCard(card.id, excuseValue)
-  if (!success) errorMessage.value = message ?? 'Impossible de jouer cette carte.'
+  try {
+    const { success, message } = await gameStore.playCard(card.id, excuseValue)
+    if (!success) showError(message ?? 'Impossible de jouer cette carte.')
+  } finally {
+    sending.value = false
+  }
 }
+
+// Les erreurs disparaissent seules et ne survivent pas à un changement de phase/tour.
+let errorTimer: ReturnType<typeof setTimeout> | undefined
+const showError = (message: string) => {
+  errorMessage.value = message
+  clearTimeout(errorTimer)
+  errorTimer = setTimeout(() => { errorMessage.value = '' }, 3000)
+}
+watch(() => [gameStore.phase, gameStore.currentPlayerIndex], () => {
+  errorMessage.value = ''
+})
 
 const winnerName = computed(() => {
   const id = gameStore.gameOverData?.winnerId
