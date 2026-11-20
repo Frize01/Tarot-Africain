@@ -9,6 +9,7 @@ import apiMethods from '@/api'
 
 import Test from './Test.vue'
 import Deal from '../components/Deal.vue'
+import VButton from '@/components/VButton.vue'
 
 const router = useRouter()
 const toast = useToast()
@@ -25,10 +26,15 @@ const myId = computed(() => String(lobbyStore.myId ?? ''))
 const me = computed(() => gameStore.players.find(p => p.id === myId.value))
 const myHand = computed(() => me.value?.hand.filter((c): c is Card => c !== null) || [])
 const isMyTurn = computed(() => gameStore.currentPlayer?.id === myId.value)
+// On ne peut cliquer une carte que pendant la phase de jeu (pas pendant les annonces
+// ni pendant l'animation de résolution du pli).
+const canPlayCard = computed(() => isMyTurn.value && gameStore.phase === 'playing')
 
 const forbiddenAnnounceValue = computed(() => {
-  const playersWhoAnnounced = gameStore.players.filter(p => p.announced !== null)
-  const isLastPlayer = playersWhoAnnounced.length === gameStore.players.length - 1
+
+  const alive = gameStore.players.filter(p => p.isAlive)
+  const playersWhoAnnounced = alive.filter(p => p.announced !== null)
+  const isLastPlayer = playersWhoAnnounced.length === alive.length - 1
 
   if (isLastPlayer && isMyTurn.value) {
     const currentTotal = gameStore.players.reduce((sum, p) => sum + (p.announced || 0), 0)
@@ -101,14 +107,26 @@ onUnmounted(() => {
 
 const handleSelectAnnounce = async (count: number) => {
   errorMessage.value = ''
-  const success = await gameStore.sendAnnounce(count)
-  if (!success) errorMessage.value = "Calcul interdit !"
+  const { success, message } = await gameStore.sendAnnounce(count)
+  if (!success) errorMessage.value = message ?? "Calcul interdit !"
 }
 
 const handlePlayCard = async (card: any) => {
   // L'excuse (value null) vaut 0 ou 22 ; sélecteur UI = hors périmètre, on envoie 0 par défaut.
   const excuseValue = card?.value === null ? 0 : null
-  await gameStore.playCard(card.id, excuseValue)
+  errorMessage.value = ''
+  const { success, message } = await gameStore.playCard(card.id, excuseValue)
+  if (!success) errorMessage.value = message ?? 'Impossible de jouer cette carte.'
+}
+
+const winnerName = computed(() => {
+  const id = gameStore.gameOverData?.winnerId
+  return gameStore.players.find(p => p.id === String(id))?.name ?? null
+})
+
+const leaveGame = () => {
+  lobbyStore.$reset()
+  router.push('/tarot_africain/informations')
 }
 </script>
 
@@ -140,7 +158,7 @@ const handlePlayCard = async (card: any) => {
       :nbCardsPerPlayer="gameStore.cardsPerPlayer"
       :myHand="myHand"
       :myColor="me?.color"
-      :isMyTurn="isMyTurn"
+      :isMyTurn="canPlayCard"
       :trick="gameStore.trick"
       :players="gameStore.players"
       :myId="myId"
@@ -149,6 +167,18 @@ const handlePlayCard = async (card: any) => {
       :currentPlayerName="gameStore.currentPlayer?.name"
       @play-card="handlePlayCard"
       />
+
+    <div v-if="gameStore.phase === 'gameover'"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div class="bg-slate-800 border border-amber-400 rounded-xl px-8 py-6 text-center shadow-2xl">
+        <h2 class="text-2xl font-bold mb-2">Partie terminée</h2>
+        <p class="mb-4">
+          <template v-if="winnerName">{{ winnerName }} remporte la partie !</template>
+          <template v-else>Aucun gagnant.</template>
+        </p>
+        <VButton @click="leaveGame">Retour</VButton>
+      </div>
+    </div>
 
     <p v-if="errorMessage" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg text-sm font-semibold z-50">
       {{ errorMessage }}

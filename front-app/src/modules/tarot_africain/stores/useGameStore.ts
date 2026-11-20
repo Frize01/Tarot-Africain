@@ -119,7 +119,7 @@ export const useGameStore = defineStore('game', {
         this.cardsPerPlayer = data.cardsPerPlayer
         this.players.forEach(p => {
           if (!sameId(p.id, lobby.myId)) {
-            p.hand = Array(data.cardsPerPlayer).fill(null)
+            p.hand = p.isAlive ? Array(data.cardsPerPlayer).fill(null) : []
           }
         })
         this.phase = Phase.Announcing
@@ -151,16 +151,17 @@ export const useGameStore = defineStore('game', {
 
       channel.listen('.TrickResolved', (data: any) => {
         this.phase = Phase.Resolving
-        setTimeout(() => {
-          this.trick = []
-          const winner = this.players.find(p => sameId(p.id, data.winnerId))
-          if (winner) {
-            winner.tricksWon++
-            this.currentPlayerIndex = this.players.findIndex(p => sameId(p.id, data.winnerId))
-          }
+        const winner = this.players.find(p => sameId(p.id, data.winnerId))
+        if (winner) {
+          winner.tricksWon++
+          this.currentPlayerIndex = this.players.findIndex(p => sameId(p.id, data.winnerId))
+        }
+        const hasCardsLeft = (winner?.hand?.length ?? 0) > 0
 
-          const hasCardsLeft = this.currentPlayer && this.currentPlayer.hand && this.currentPlayer.hand.length > 0
-          // si des cartes restent on rejoue, sinon on attend RoundScored / GameOver
+        setTimeout(() => {
+          // RoundScored / GameOver / DealerSet a pu passer entre temps : ne pas écraser la phase
+          if (this.phase !== Phase.Resolving) return
+          this.trick = []
           this.phase = hasCardsLeft ? Phase.Playing : Phase.Scoring
         }, 2000)
       })
@@ -200,18 +201,18 @@ export const useGameStore = defineStore('game', {
       if (!response.success) {
         console.error('Impossible de jouer la carte :', response.message)
       }
-      return response.success
+      return { success: response.success, message: response.message }
     },
 
     async sendAnnounce(count: number) {
       const lobby = useLobbyStore()
       try {
         const response = await apiMethods.announceTricks(lobby.roomId, count)
-        // 400 = annonce invalide (règle du dernier / pas votre tour)
-        return response.success
+        // 400 = annonce invalide (règle du dernier / pas votre tour / hors phase)
+        return { success: response.success, message: response.message }
       } catch (error) {
         console.error("Erreur critique pendant l'annonce :", error)
-        return false
+        return { success: false, message: undefined }
       }
     },
 
