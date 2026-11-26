@@ -59,7 +59,7 @@ const isMyTurn = computed(() => {
 })
 
 const mount = ref<HTMLDivElement | null>(null)
-const labels = reactive(props.game.players.map(() => ({ x: 0, y: 0, visible: false })))
+const labels = reactive(props.game.players.map(() => ({ x: 0, y: 0, ax: -50, visible: false })))
 
 let renderer: THREE.WebGLRenderer
 let scene: THREE.Scene
@@ -425,9 +425,14 @@ function updateLabels() {
   seats.forEach((seat, i) => {
     if (i === props.game.me) return
     tmpV.set(seat.chair.x, seat.label + .06, seat.chair.z).project(camera)
-    labels[i]!.visible = tmpV.z < 1 && Math.abs(tmpV.x) < .95 && Math.abs(tmpV.y) < 1
-    labels[i]!.x = ((tmpV.x + 1) / 2) * w
-    labels[i]!.y = ((1 - tmpV.y) / 2) * h
+    // Plaque ancrée sur la tête, mais qui pivote autour d'elle selon la position horizontale :
+    // tête à gauche → s'étend vers la droite, tête à droite → vers la gauche. Elle reste donc
+    // entièrement à l'écran et collée à la tête, sans glisser. Visible tant que la tête est en vue.
+    const nx = THREE.MathUtils.clamp((tmpV.x + 1) / 2, 0, 1)
+    labels[i]!.visible = tmpV.z < 1 && Math.abs(tmpV.x) < 1.05 && Math.abs(tmpV.y) < 1.1
+    labels[i]!.x = nx * w
+    labels[i]!.y = THREE.MathUtils.clamp((1 - tmpV.y) / 2, .06, .94) * h
+    labels[i]!.ax = -nx * 100
   })
 }
 
@@ -469,7 +474,7 @@ onBeforeUnmount(() => {
           out: p.eliminated,
           won: game.phase === 'trickEnd' && game.lastTrickWinner === i,
         }"
-        :style="{ transform: `translate(${labels[i]!.x}px, ${labels[i]!.y}px) translate(-50%, -100%)` }"
+        :style="{ transform: `translate(${labels[i]!.x}px, ${labels[i]!.y}px) translate(${labels[i]!.ax}%, -100%)` }"
       >
         <div class="plate">
           <span class="dot" :style="{ background: p.color }">{{ initials(p.name) }}</span>
