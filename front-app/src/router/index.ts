@@ -42,6 +42,12 @@ const router = createRouter({
       props: true
     },
     {
+      path: '/tarot_africain/game3d/:gameId?',
+      name: 'TarotAfricainGame3D',
+      component: () => import('@/modules/tarot_africain/views/Game3D.vue'),
+      props: true
+    },
+    {
       path: '/test',
       name: 'test',
       component: () => import('@/modules/tarot_africain/views/Test.vue')
