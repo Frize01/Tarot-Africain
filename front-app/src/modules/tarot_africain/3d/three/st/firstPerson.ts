@@ -5,13 +5,18 @@
  * left hand fan grip, right hand pinching the hovered card. Removed: envelope, ballot,
  * gun and gesture layers. The rig lives in world space in front of the local seat.
  */
-import { Euler, Group, Quaternion } from 'three'
-import { composeCard, fanGrip, handFromCard, slerpRotation } from '../../vendor/secret-table/prototype/grip'
+import { Euler, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Quaternion } from 'three'
+import { fanGrip, handFromCard, slerpRotation } from '../../vendor/secret-table/prototype/grip'
 import type { HandPose, Transform, Vec3 } from '../../vendor/secret-table/prototype/model'
 import type { SkinId } from '../../vendor/secret-table/characters/spec'
 import { SkinnedHand } from './hands'
 import { fanCardN } from './fan'
-import type { CardObject } from './cards'
+import { CARD, type CardObject } from './cards'
+
+/* Plan invisible servant de cible de survol, figé à la position « au repos » de chaque carte
+ * (sans le soulèvement) : évite que la carte survolée se dérobe sous le curseur. */
+const HIT_GEO = new PlaneGeometry(CARD.w, CARD.h)
+const HIT_MAT = new MeshBasicMaterial({ visible: false })
 
 const hand = (position: Vec3, rotation: Vec3 = [0, 0, 0], grip: HandPose['grip'] = 'rest'): HandPose => ({ position, rotation, grip })
 export const restLeft = hand([-.44, .098, 1.38], [.05, -.09, -.08])
@@ -59,6 +64,8 @@ export class FirstPersonRig {
   readonly root = new Group()
   /** Cards held by the local player are children of this group (placed at `heldFan`). */
   readonly fan = new Group()
+  /** Cibles de survol figées au repos (une par carte), pour un survol stable. */
+  readonly hitProxies: Mesh[] = []
   private readonly left: SkinnedHand
   private readonly right: SkinnedHand
   private readonly leftF = new HandFollower(restLeft)
@@ -93,7 +100,6 @@ export class FirstPersonRig {
     }
     this.fan.position.set(...fanT.position)
     this.fan.rotation.set(...fanT.rotation)
-    let pinch: Transform | null = null
     cards.forEach((card, i) => {
       if (card.parent !== this.fan) this.fan.attach(card)
       const want = card === hovered ? LIFT : 0
@@ -106,12 +112,26 @@ export class FirstPersonRig {
       card.scale.x += (1 - card.scale.x) * k; card.scale.y += (1 - card.scale.y) * k; card.scale.z += (1 - card.scale.z) * k
       tmpQ.setFromEuler(tmpE.set(t.rotation[0], t.rotation[1], blind ? Math.PI : 0))
       card.quaternion.slerp(tmpQ, k)
-      if (card === hovered) pinch = composeCard(fanT, t)
+    })
+    // Cibles de survol : au repos (lift = 0), figées sous le curseur quelle que soit l'animation
+    while (this.hitProxies.length < n) {
+      const m = new Mesh(HIT_GEO, HIT_MAT)
+      m.rotation.order = 'YXZ'
+      this.fan.add(m)
+      this.hitProxies.push(m)
+    }
+    this.hitProxies.forEach((m, i) => {
+      m.visible = i < n
+      if (i >= n) { m.userData.cardId = undefined; return }
+      const rest = fanCardN(i, n, 0)
+      m.position.set(rest.position[0], rest.position[1], rest.position[2])
+      m.rotation.set(-Math.PI / 2, rest.rotation[1], 0)
+      m.userData.cardId = cards[i]!.userData.id
     })
     const leftTarget = n > 0 ? handFromCard(fanT, -1, fanGrip(n)) : restLeft
-    const rightTarget = pinch ? handFromCard(pinch, 1, 'holdBallot') : restRight
+    // La main droite reste au repos : elle ne vient plus « pincer » la carte survolée (elle la masquait)
     this.left.apply(this.leftF.step(leftTarget, dt, 14))
-    this.right.apply(this.rightF.step(rightTarget, dt, pinch ? 12 : 7))
+    this.right.apply(this.rightF.step(restRight, dt, 7))
   }
 }
 

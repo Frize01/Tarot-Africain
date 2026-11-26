@@ -25,13 +25,18 @@ const emit = defineEmits<{ play: [id: string] }>()
 
 /* Bornes de regard (Secret Table `prototype/model.ts` lookLimits).
  * yaw volontairement réduit en vue assise : au-delà on verrait notre corps vide derrière. */
-const LOOK = { yaw: 0.62, pitchMin: -40 * Math.PI / 180, pitchMax: 12 * Math.PI / 180 }
+const LOOK = { yaw: 0.62, pitchMin: -32 * Math.PI / 180, pitchMax: 12 * Math.PI / 180 }
 const CENTER_LOOK = { yaw: 0, pitch: -.26 }
 const YAW_SPEED = 1.5
 /* Amplitude de regard vers le bas (depuis le centre) qui abaisse complètement l'éventail */
 const FAN_DROP_SPAN = .16
-/* Avancée de la caméra (en m) quand on baisse l'éventail : on se penche légèrement vers la table */
-const SEAT_APPROACH = .14
+/* Zoom « pli » : en baissant le regard, la caméra passe au-dessus de nos cartes et plonge vers le centre.
+ * Les cartes posées forment un anneau autour du centre → on cadre tout l'anneau, visé un peu
+ * vers le côté adverse pour bien voir les cartes des autres. */
+const TRICK_POS = new THREE.Vector3(0, 1.26, 1.12)
+/* Cible au niveau du tapis (les cartes posées sont à y ≈ 0) : on vise le vrai centre, pas le texte au loin */
+const TRICK_TARGET = new THREE.Vector3(0, .03, .04)
+const TRICK_FOV = 55
 
 /* Points de vue (Secret Table `CameraMode`) : 'seat' = 1re personne, 'overview' = vue haute de la table.
  * La bascule est automatique : vue d'ensemble quand ce n'est pas notre tour, vue assise sinon. */
@@ -223,7 +228,8 @@ function syncCards(dt: number, t: number) {
     const a = seats[loc.p]!.angle
     if (loc.t === 'trick') {
       const lift = id === winning ? .03 : 0
-      tmpV.set(Math.sin(a) * .74, .012 + loc.k * .003 + lift, Math.cos(a) * .52)
+      // Pli resserré vers le centre : les cartes posées forment un tas compact, lisible même en portrait
+      tmpV.set(Math.sin(a) * .46, .012 + loc.k * .003 + lift, Math.cos(a) * .34)
       tmpE.set(0, jitter(id, .5), 0)
       setGlow(c, id === winning, '#8fe0a0')
     } else {
@@ -296,28 +302,37 @@ function loop() {
   const dt = Math.min(clock.getDelta(), .05)
   const t = clock.elapsedTime
 
-  const yawLimit = camMode.value === 'overview' ? Math.PI : LOOK.yaw
-  lookTarget.yaw = clamp(lookTarget.yaw + yawInput * YAW_SPEED * dt, -yawLimit, yawLimit)
   const k = 1 - Math.exp(-dt * 10)
   look.yaw += (lookTarget.yaw - look.yaw) * k
   look.pitch += (lookTarget.pitch - look.pitch) * k
+
+  // Facteur de levée (regard) : 1 = éventail levé/regard avant, 0 = baissé/regard vers la table
+  lookRaise = THREE.MathUtils.clamp(1 - (CENTER_LOOK.pitch - look.pitch) / FAN_DROP_SPAN, 0, 1)
+  // Facteur « pli » : proportion du regard vers le bas (du centre jusqu'à la limite basse)
+  const peek = smoothstep(THREE.MathUtils.clamp((CENTER_LOOK.pitch - look.pitch) / (CENTER_LOOK.pitch - LOOK.pitchMin), 0, 1))
+
+  // Lacet : borné normalement en vue assise, resserré vers 0 quand on baisse → on reste centré sur le pli
+  const yawLimit = camMode.value === 'overview' ? Math.PI : LOOK.yaw * (1 - peek)
+  lookTarget.yaw = clamp(lookTarget.yaw + yawInput * YAW_SPEED * dt, -yawLimit, yawLimit)
 
   // Fondu doux entre vue assise et vue d'ensemble (Secret Table `CameraMode`)
   viewBlend += (viewTarget - viewBlend) * (1 - Math.exp(-dt * 5))
   const b = smoothstep(THREE.MathUtils.clamp(viewBlend, 0, 1))
 
-  // Facteur de levée (regard) : 1 = éventail levé/regard avant, 0 = baissé/regard vers la table
-  lookRaise = THREE.MathUtils.clamp(1 - (CENTER_LOOK.pitch - look.pitch) / FAN_DROP_SPAN, 0, 1)
-  // Vue assise : œil au-dessus de la chaise locale ; on s'approche légèrement quand on baisse l'éventail (regard vers la table)
-  seatPos.set(0, .51 + Math.sin(t * .7) * .003, 2.035 - SEAT_APPROACH * (1 - lookRaise))
+  // Vue assise : œil au-dessus de la chaise locale
+  seatPos.set(0, .51 + Math.sin(t * .7) * .003, 2.035)
   seatLookAt.set(-Math.sin(look.yaw) * Math.cos(look.pitch), Math.sin(look.pitch), -Math.cos(look.yaw) * Math.cos(look.pitch)).add(seatPos)
+  // Zoom « pli » : on fond vers une caméra au-dessus de nos cartes, cadrée sur l'anneau de cartes posées
+  seatPos.lerp(TRICK_POS, peek)
+  seatLookAt.lerp(TRICK_TARGET, peek)
+  const seatFovNow = seatFov + (TRICK_FOV - seatFov) * peek
   // Vue d'ensemble : caméra en orbite au-dessus de la table
   ovPos.set(Math.sin(look.yaw) * OVERVIEW.radius, OVERVIEW.height, Math.cos(look.yaw) * OVERVIEW.radius)
 
   camera.position.lerpVectors(seatPos, ovPos, b)
   lookAt.lerpVectors(seatLookAt, OVERVIEW_TARGET, b)
   camera.lookAt(lookAt)
-  const fov = seatFov + (OVERVIEW.fov - seatFov) * b
+  const fov = seatFovNow + (OVERVIEW.fov - seatFovNow) * b
   if (Math.abs(camera.fov - fov) > 1e-3) { camera.fov = fov; camera.updateProjectionMatrix() }
 
   syncCards(dt, t)
@@ -338,10 +353,13 @@ function setPointer(e: PointerEvent) {
 
 function pickMyCard(): CardObject | null {
   const mine = props.game.players[props.game.me]!.hand.map((id) => cards.get(id)).filter(Boolean) as CardObject[]
+  if (!mine.length) return null
   raycaster.setFromCamera(pointer, camera)
-  const hits = raycaster.intersectObjects(mine.map((c) => c.userData.hit), false)
+  // Survol testé sur les proxies figés au repos (stables sous le curseur), pas sur les cartes animées
+  const hits = raycaster.intersectObjects(fp.hitProxies.slice(0, mine.length), false)
   if (!hits.length) return null
-  return mine.find((c) => c.userData.hit === hits[0]!.object) ?? null
+  const id = hits[0]!.object.userData.cardId as string | undefined
+  return id ? (cards.get(id) ?? null) : null
 }
 
 function updateHover() {
