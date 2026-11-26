@@ -7,7 +7,7 @@
  * La scène lit l'état de jeu (props.game) à chaque frame et place chaque carte
  * (main, pli en cours, plis gagnés). Elle n'émet qu'un événement : `play`.
  */
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import * as THREE from 'three'
 import type { GameState } from '../game/types'
 import { avatarForSeat, labelHeight } from '../vendor/secret-table/characters/spec'
@@ -23,10 +23,35 @@ import { createCard, setGlow, type CardObject } from '../three/st/cards'
 const props = defineProps<{ game: GameState; canPlay: boolean }>()
 const emit = defineEmits<{ play: [id: string] }>()
 
-/* Bornes de regard (Secret Table `prototype/model.ts` lookLimits) */
-const LOOK = { yaw: 1.4, pitchMin: -48 * Math.PI / 180, pitchMax: 12 * Math.PI / 180 }
+/* Bornes de regard (Secret Table `prototype/model.ts` lookLimits).
+ * yaw volontairement réduit en vue assise : au-delà on verrait notre corps vide derrière. */
+const LOOK = { yaw: 0.62, pitchMin: -40 * Math.PI / 180, pitchMax: 12 * Math.PI / 180 }
 const CENTER_LOOK = { yaw: 0, pitch: -.26 }
 const YAW_SPEED = 1.5
+/* Amplitude de regard vers le bas (depuis le centre) qui abaisse complètement l'éventail */
+const FAN_DROP_SPAN = .16
+/* Avancée de la caméra (en m) quand on baisse l'éventail : on se penche légèrement vers la table */
+const SEAT_APPROACH = .14
+
+/* Points de vue (Secret Table `CameraMode`) : 'seat' = 1re personne, 'overview' = vue haute de la table.
+ * La bascule est automatique : vue d'ensemble quand ce n'est pas notre tour, vue assise sinon. */
+type CamMode = 'seat' | 'overview'
+const camMode = ref<CamMode>('overview')
+/* Vue d'ensemble : caméra en orbite au-dessus de la table, regardant son centre */
+const OVERVIEW = { radius: 3.4, height: 3.05, fov: 42 }
+const OVERVIEW_TARGET = new THREE.Vector3(0, .35, 0)
+/* Fondu de caméra entre les deux vues (0 = assis, 1 = vue d'ensemble) */
+let viewBlend = 1
+let viewTarget = 1
+let seatFov = 64
+/* Facteur de levée courant (0 = éventail baissé / regard vers le bas, 1 = levé / regard avant) */
+let lookRaise = 1
+
+/* « C'est notre tour » : on doit miser ou jouer */
+const isMyTurn = computed(() => {
+  const g = props.game
+  return g.current === g.me && (g.phase === 'betting' || g.phase === 'playing' || g.phase === 'excuse')
+})
 
 const mount = ref<HTMLDivElement | null>(null)
 const labels = reactive(props.game.players.map(() => ({ x: 0, y: 0, visible: false })))
@@ -137,7 +162,7 @@ function onResize() {
   const w = el.clientWidth, h = el.clientHeight
   const aspect = w / Math.max(1, h)
   // Secret Table `SeatCamera` : fov vertical tel que ~52° restent visibles à l'horizontale
-  camera.fov = Math.min(100, Math.max(64, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(26)) / aspect))))
+  seatFov = Math.min(100, Math.max(64, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(26)) / aspect))))
   camera.aspect = aspect
   camera.updateProjectionMatrix()
   // En portrait, on baisse un peu le regard pour garder la table dans le cadre
@@ -221,7 +246,9 @@ function syncCards(dt: number, t: number) {
   })
   if (hovered && !handCards[g.me]!.includes(hovered)) hovered = null
   const myTurn = g.current === g.me && ['betting', 'playing', 'excuse'].includes(g.phase)
-  fp.update(handCards[g.me]!, props.canPlay ? hovered : null, g.blind, dt, myTurn || g.phase === 'dealing')
+  const shown = myTurn || g.phase === 'dealing'
+  // En regardant vers le bas (glisser vers le haut), on abaisse l'éventail pour voir les cartes posées
+  fp.update(handCards[g.me]!, props.canPlay ? hovered : null, g.blind, dt, shown ? lookRaise : 0)
 }
 const ONE = new THREE.Vector3(1, 1, 1)
 
@@ -260,19 +287,38 @@ function updateAvatars(dt: number) {
 
 /* ------------------------------------------------------------------ */
 const lookAt = new THREE.Vector3()
+const seatPos = new THREE.Vector3()
+const seatLookAt = new THREE.Vector3()
+const ovPos = new THREE.Vector3()
+const smoothstep = (x: number) => x * x * (3 - 2 * x)
 function loop() {
   raf = requestAnimationFrame(loop)
   const dt = Math.min(clock.getDelta(), .05)
   const t = clock.elapsedTime
 
-  lookTarget.yaw = clamp(lookTarget.yaw + yawInput * YAW_SPEED * dt, -LOOK.yaw, LOOK.yaw)
+  const yawLimit = camMode.value === 'overview' ? Math.PI : LOOK.yaw
+  lookTarget.yaw = clamp(lookTarget.yaw + yawInput * YAW_SPEED * dt, -yawLimit, yawLimit)
   const k = 1 - Math.exp(-dt * 10)
   look.yaw += (lookTarget.yaw - look.yaw) * k
   look.pitch += (lookTarget.pitch - look.pitch) * k
-  // Secret Table `SeatCamera` (mode seat) : œil au-dessus de la chaise locale
-  camera.position.set(0, .51 + Math.sin(t * .7) * .003, 2.035)
-  lookAt.set(-Math.sin(look.yaw) * Math.cos(look.pitch), Math.sin(look.pitch), -Math.cos(look.yaw) * Math.cos(look.pitch)).add(camera.position)
+
+  // Fondu doux entre vue assise et vue d'ensemble (Secret Table `CameraMode`)
+  viewBlend += (viewTarget - viewBlend) * (1 - Math.exp(-dt * 5))
+  const b = smoothstep(THREE.MathUtils.clamp(viewBlend, 0, 1))
+
+  // Facteur de levée (regard) : 1 = éventail levé/regard avant, 0 = baissé/regard vers la table
+  lookRaise = THREE.MathUtils.clamp(1 - (CENTER_LOOK.pitch - look.pitch) / FAN_DROP_SPAN, 0, 1)
+  // Vue assise : œil au-dessus de la chaise locale ; on s'approche légèrement quand on baisse l'éventail (regard vers la table)
+  seatPos.set(0, .51 + Math.sin(t * .7) * .003, 2.035 - SEAT_APPROACH * (1 - lookRaise))
+  seatLookAt.set(-Math.sin(look.yaw) * Math.cos(look.pitch), Math.sin(look.pitch), -Math.cos(look.yaw) * Math.cos(look.pitch)).add(seatPos)
+  // Vue d'ensemble : caméra en orbite au-dessus de la table
+  ovPos.set(Math.sin(look.yaw) * OVERVIEW.radius, OVERVIEW.height, Math.cos(look.yaw) * OVERVIEW.radius)
+
+  camera.position.lerpVectors(seatPos, ovPos, b)
+  lookAt.lerpVectors(seatLookAt, OVERVIEW_TARGET, b)
   camera.lookAt(lookAt)
+  const fov = seatFov + (OVERVIEW.fov - seatFov) * b
+  if (Math.abs(camera.fov - fov) > 1e-3) { camera.fov = fov; camera.updateProjectionMatrix() }
 
   syncCards(dt, t)
   updateAvatars(dt)
@@ -319,8 +365,9 @@ function onPointerMove(e: PointerEvent) {
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y
   if (dx * dx + dy * dy >= 36) drag.moved = true
   if (drag.moved) {
-    // Secret Table `draggedLook`
-    lookTarget.yaw = clamp(drag.yaw - dx * .0034, -LOOK.yaw, LOOK.yaw)
+    // Secret Table `draggedLook` (orbite complète en vue d'ensemble)
+    const yawLimit = camMode.value === 'overview' ? Math.PI : LOOK.yaw
+    lookTarget.yaw = clamp(drag.yaw - dx * .0034, -yawLimit, yawLimit)
     lookTarget.pitch = clamp(drag.pitch + dy * .0028, LOOK.pitchMin, LOOK.pitchMax)
   }
 }
@@ -343,6 +390,16 @@ const onKeyUp = (e: KeyboardEvent) => onKey(e, false)
 const startTurnCam = (dir: number) => { yawInput = -dir }
 const stopTurnCam = () => { yawInput = 0 }
 const recenter = () => { lookTarget.yaw = CENTER_LOOK.yaw; lookTarget.pitch = CENTER_LOOK.pitch }
+
+// Bascule automatique : vue assise quand c'est notre tour, vue d'ensemble sinon
+function setMode(mode: CamMode) {
+  if (camMode.value === mode) return
+  camMode.value = mode
+  viewTarget = mode === 'overview' ? 1 : 0
+  // on recentre le regard/l'orbite à chaque changement de vue
+  lookTarget.yaw = CENTER_LOOK.yaw; lookTarget.pitch = CENTER_LOOK.pitch; look.yaw = CENTER_LOOK.yaw
+}
+watch(isMyTurn, (mine) => setMode(mine ? 'seat' : 'overview'), { immediate: true })
 
 function updateLabels() {
   const w = renderer.domElement.clientWidth

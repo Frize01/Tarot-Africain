@@ -81,10 +81,11 @@ export class FirstPersonRig {
    */
   private raise = 0
 
-  update(cards: CardObject[], hovered: CardObject | null, blind: boolean, dt: number, raised = true) {
+  update(cards: CardObject[], hovered: CardObject | null, blind: boolean, dt: number, raised: number = 1) {
     const n = cards.length
     const k = 1 - Math.exp(-dt * 10)
-    this.raise += ((raised ? 1 : 0) - this.raise) * (1 - Math.exp(-dt * 5))
+    // `raised` est continu : 1 = éventail levé (heldFan), 0 = abaissé (lowFan, laisse voir le pli)
+    this.raise += (raised - this.raise) * (1 - Math.exp(-dt * 5))
     const r = this.raise
     const fanT: Transform = {
       position: [0, lowFan.position[1] + (heldFan.position[1] - lowFan.position[1]) * r, lowFan.position[2] + (heldFan.position[2] - lowFan.position[2]) * r],
