@@ -1,16 +1,41 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Tarot3DApp from '../3d/Tarot3DApp.vue'
+import TarotTable3D from '../3d/components/TarotTable3D.vue'
+import TarotHud from '../3d/components/TarotHud.vue'
+import DevControlPanel from '../components/DevControlPanel.vue'
+import { useTarotStoreGame } from '../3d/game/useStoreBridge'
 
 const router = useRouter()
+
+// Jeu réel (store + mockApi/Reverb) exposé au format GameState de la scène 3D
+const game = useTarotStoreGame()
+const { state, canPlay } = game
+
+function onPlay(id: string) {
+  game.playCard(state.me, id)
+}
+
+onMounted(() => game.init())
 </script>
 
 <template>
   <div class="game3d-wrapper">
-    <button class="game3d-back" @click="router.push({ name: 'home' })">
-      ← Retour
-    </button>
-    <Tarot3DApp />
+    <button class="game3d-back" @click="router.push({ name: 'home' })">← Retour</button>
+
+    <!-- Panneau dev : pilote les annonces / coups des autres joueurs (comme la vue 2D) -->
+    <DevControlPanel />
+
+    <template v-if="state.players.length">
+      <TarotTable3D :game="state" :can-play="canPlay" @play="onPlay" />
+      <TarotHud
+        :game="state"
+        :forbidden-bet="game.forbiddenBet.value"
+        @bet="(n: number) => game.placeBet(state.me, n)"
+        @excuse="game.chooseExcuse"
+        @restart="() => {}"
+      />
+    </template>
   </div>
 </template>
 
@@ -19,6 +44,7 @@ const router = useRouter()
   position: fixed;
   inset: 0;
   overflow: hidden;
+  background: #0d0705;
 }
 
 .game3d-back {
