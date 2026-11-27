@@ -12,9 +12,13 @@ import DungeonSection from '@/components/DungeonSection.vue'
 import ReturnBtn from '@/components/ReturnBtn.vue'
 
 import { useLobbyStore } from '../stores/useLobbyStore'
+import { useGuestIdentity } from '@/composables/useGuestIdentity'
+import { useToast } from 'vue-toastification'
 
 const router = useRouter()
 const lobbyStore = useLobbyStore()
+const { ensureIdentity } = useGuestIdentity()
+const toast = useToast()
 import apiMethods from '@/api'
 
 const game = ref([])
@@ -42,6 +46,7 @@ const getAvailableRooms = async () => {
 
 // creer room
 async function handleCreateRoom() {
+  if (!(await ensureIdentity())) return
   try {
     const response = await apiMethods.createTarotRoom(1)
 
@@ -53,9 +58,11 @@ async function handleCreateRoom() {
 
       router.push(`/tarot_africain/lobby/${response.data.code}`)
     } else {
+      toast.error("Impossible de créer la partie. Réessaie.")
       console.error("Erreur renvoyée par le serveur :", response.message)
     }
   } catch (error) {
+    toast.error("Impossible de créer la partie. Réessaie.")
     console.error("Erreur lors de la création du salon :", error)
   }
 }
@@ -63,6 +70,7 @@ async function handleCreateRoom() {
 // join room
 async function handleJoinRoomWithCode(joinCode: string) {
   if (!joinCode) return
+  if (!(await ensureIdentity())) return
   const code = joinCode.trim().toUpperCase()
 
   const response = await apiMethods.joinTarotRoom(code)
@@ -71,12 +79,14 @@ async function handleJoinRoomWithCode(joinCode: string) {
     lobbyStore.roomCode = response.data.code
     router.push(`/tarot_africain/lobby/${code}`)
   } else {
+    toast.error(`La partie « ${code} » n'existe pas ou n'est plus disponible.`)
     console.error("Erreur join :", response.message)
   }
 }
 
 // join public room
-function handleJoinPublicRoom(id: string) {
+async function handleJoinPublicRoom(id: string) {
+  if (!(await ensureIdentity())) return
   router.push(`/tarot_africain/lobby/${id}`)
 }
 

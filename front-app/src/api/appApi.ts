@@ -33,6 +33,11 @@ export default {
     return apiHandler('post', '/api/logout');
   },
 
+  // Session "invité" : jouer sans compte (prénom seulement).
+  guestLogin(firstname: string) {
+    return apiHandler('post', '/api/guest', { firstname });
+  },
+
   // --- Profil / sécurité ---
   updateProfile(data: { firstname: string; lastname: string; email: string }) {
     return apiHandler('put', '/api/profile', data);

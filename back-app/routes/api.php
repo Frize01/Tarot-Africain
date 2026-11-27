@@ -47,4 +47,5 @@ Route::get('/rooms/{game}/available-rooms/{room:id?}', [RoomController::class, '
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/guest', [AuthController::class, 'guest']);
 Route::post('/logout', [AuthController::class, 'logout']);

@@ -56,6 +56,29 @@ class AuthController extends Controller
         ]);
     }
 
+    // Connexion "invité" : joue sans compte, on ne demande que le prénom.
+    public function guest(Request $request)
+    {
+        $data = $request->validate([
+            'firstname' => 'required|string|max:255',
+        ]);
+
+        $user = User::create([
+            'firstname' => $data['firstname'],
+            'lastname'  => null,
+            'email'     => null,
+            'password'  => null,
+            'is_guest'  => true,
+        ]);
+
+        Auth::login($user);
+
+        return response()->json([
+            'success' => true,
+            'user' => $user,
+        ], 201);
+    }
+
     public function logout(Request $request)
     {
         Auth::guard('web')->logout();

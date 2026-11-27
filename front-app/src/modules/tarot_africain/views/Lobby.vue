@@ -5,6 +5,7 @@ import { GAMES_DATA } from '../data/games'
 import { useLobbyStore } from '../stores/useLobbyStore'
 import apiMethods from '@/api'
 import { useAuth } from '@/composables/useAuth'
+import { useGuestIdentity } from '@/composables/useGuestIdentity'
 import { echo } from '@/api/echo'
 
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -20,6 +21,7 @@ const route = useRoute()
 const router = useRouter()
 const lobbyStore = useLobbyStore()
 const { user } = useAuth()
+const { ensureIdentity } = useGuestIdentity()
 
 const roomCodeUrl = route.params.gameId as string
 const qrUrl = ref(`${window.location.origin}/tarot_africain/lobby/${roomCodeUrl}`)
@@ -61,6 +63,12 @@ watch(() => lobbyStore.status, (status) => {
 
 onMounted(async () => {
   try {
+    // Invité : si on arrive via lien partagé sans être connecté, on demande le prénom.
+    if (!(await ensureIdentity())) {
+      router.push('/tarot_africain/informations')
+      return
+    }
+
     const response = await apiMethods.joinTarotRoom(roomCodeUrl)
 
     if (response.success) {
@@ -68,7 +76,7 @@ onMounted(async () => {
 
       if (!currentUserId) {
         console.error("Utilisateur non connecté")
-        router.push('/login')
+        router.push('/auth')
         return
       }
 
