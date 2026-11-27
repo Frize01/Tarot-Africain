@@ -50,7 +50,7 @@ const router = createRouter({
     {
       path: '/test',
       name: 'test',
-      component: () => import('@/modules/tarot_africain/views/Test.vue')
+      component: () => import('@/modules/tarot_africain/views/test.vue')
     },
   ],
 })
