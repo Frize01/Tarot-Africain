@@ -7,7 +7,7 @@
  * La scène lit l'état de jeu (props.game) à chaque frame et place chaque carte
  * (main, pli en cours, plis gagnés). Elle n'émet qu'un événement : `play`.
  */
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import * as THREE from 'three'
 import type { GameState } from '../game/types'
 import { avatarForSeat, labelHeight } from '../vendor/secret-table/characters/spec'
@@ -41,22 +41,16 @@ const TRICK_FOV = 55
 /* Points de vue (Secret Table `CameraMode`) : 'seat' = 1re personne, 'overview' = vue haute de la table.
  * La bascule est automatique : vue d'ensemble quand ce n'est pas notre tour, vue assise sinon. */
 type CamMode = 'seat' | 'overview'
-const camMode = ref<CamMode>('overview')
+const camMode = ref<CamMode>('seat')
 /* Vue d'ensemble : caméra en orbite au-dessus de la table, regardant son centre */
 const OVERVIEW = { radius: 3.4, height: 3.05, fov: 42 }
 const OVERVIEW_TARGET = new THREE.Vector3(0, .35, 0)
 /* Fondu de caméra entre les deux vues (0 = assis, 1 = vue d'ensemble) */
-let viewBlend = 1
-let viewTarget = 1
+let viewBlend = 0
+let viewTarget = 0
 let seatFov = 64
 /* Facteur de levée courant (0 = éventail baissé / regard vers le bas, 1 = levé / regard avant) */
 let lookRaise = 1
-
-/* « C'est notre tour » : on doit miser ou jouer */
-const isMyTurn = computed(() => {
-  const g = props.game
-  return g.current === g.me && (g.phase === 'betting' || g.phase === 'playing' || g.phase === 'excuse')
-})
 
 const mount = ref<HTMLDivElement | null>(null)
 const labels = reactive(props.game.players.map(() => ({ x: 0, y: 0, ax: -50, visible: false })))
@@ -409,15 +403,7 @@ const startTurnCam = (dir: number) => { yawInput = -dir }
 const stopTurnCam = () => { yawInput = 0 }
 const recenter = () => { lookTarget.yaw = CENTER_LOOK.yaw; lookTarget.pitch = CENTER_LOOK.pitch }
 
-// Bascule automatique : vue assise quand c'est notre tour, vue d'ensemble sinon
-function setMode(mode: CamMode) {
-  if (camMode.value === mode) return
-  camMode.value = mode
-  viewTarget = mode === 'overview' ? 1 : 0
-  // on recentre le regard/l'orbite à chaque changement de vue
-  lookTarget.yaw = CENTER_LOOK.yaw; lookTarget.pitch = CENTER_LOOK.pitch; look.yaw = CENTER_LOOK.yaw
-}
-watch(isMyTurn, (mine) => setMode(mine ? 'seat' : 'overview'), { immediate: true })
+// Vue assise (1re personne) en permanence, même quand ce n'est pas notre tour.
 
 function updateLabels() {
   const w = renderer.domElement.clientWidth
