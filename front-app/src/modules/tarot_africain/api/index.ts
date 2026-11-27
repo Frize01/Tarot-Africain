@@ -29,6 +29,16 @@ export default {
     return apiHandler('get', `/api/rooms/${gameId}/available-rooms`);
   },
 
+  // état complet de la partie (reprise / hydratation) — par CODE de room
+  getState(roomCode: string) {
+    return apiHandler('get', `/api/rooms/${roomCode}/state`);
+  },
+
+  // (host) désigne le donneur et lance la manche
+  setDealer(roomId: string | number) {
+    return apiHandler('post', `/api/rooms/${roomId}/dealer`);
+  },
+
   // ask main
   getTarotHand(roomId: string) {
     return apiHandler('post', `/api/rooms/${roomId}/deal`);

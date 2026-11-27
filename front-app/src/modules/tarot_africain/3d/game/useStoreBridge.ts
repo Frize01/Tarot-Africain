@@ -10,7 +10,9 @@ import type { GameState, CardId } from './types'
 import { useGameStore } from '../../stores/useGameStore'
 import { useLobbyStore } from '../../stores/useLobbyStore'
 import { Phase } from '../../models/Phase'
-import { api } from '@/api/mockApi'
+import apiTarot from '../../api'
+
+const sameId = (a: unknown, b: unknown) => String(a) === String(b)
 
 const PHASE_MAP: Record<string, GameState['phase']> = {
   [Phase.Rolling]: 'idle',
@@ -48,7 +50,7 @@ export function useTarotStoreGame() {
   // Synchronise le GameState 3D à chaque changement du store
   watchEffect(() => {
     const players = store.players as any[]
-    const myIdx = players.findIndex((p) => p.id === lobby.myId)
+    const myIdx = players.findIndex((p) => sameId(p.id, lobby.myId))
     state.me = myIdx < 0 ? 0 : myIdx
     state.round = store.currentRound
     state.cardsPerRound = store.cardsPerPlayer
@@ -66,7 +68,7 @@ export function useTarotStoreGame() {
       bet: p.announced ?? null,
       tricks: p.tricksWon ?? 0,
       eliminated: !(p.isAlive ?? (p.lives ?? 0) > 0),
-      isHuman: p.id === lobby.myId,
+      isHuman: sameId(p.id, lobby.myId),
     }))
     state.trick = store.trick.map((t: any) => ({
       player: players.findIndex((p) => p.id === t.playerId),
@@ -87,7 +89,7 @@ export function useTarotStoreGame() {
     const players = store.players as any[]
     const announced = players.filter((p) => p.announced !== null && p.announced !== undefined)
     const isLast = announced.length === players.length - 1
-    const myTurn = (store.currentPlayer as any)?.id === lobby.myId
+    const myTurn = sameId((store.currentPlayer as any)?.id, lobby.myId)
     if (isLast && myTurn) {
       const total = players.reduce((s, p) => s + (p.announced || 0), 0)
       return store.cardsPerPlayer - total
@@ -100,44 +102,35 @@ export function useTarotStoreGame() {
   }
 
   function playCard(_me: number, id: CardId) {
-    const my = (store.players as any[]).find((p) => p.id === lobby.myId)
+    const my = (store.players as any[]).find((p) => sameId(p.id, lobby.myId))
     const card = (my?.hand ?? []).find((c: any) => c && cardId(c) === id)
     if (card) store.playCard(card.id)
   }
 
-  // La phase « excuse » (0/22) n'est pas gérée par le backend simulé → no-op
+  // La phase « excuse » (0/22) n'est pas encore pilotée par l'UI 3D → no-op
   function chooseExcuse() {}
 
-  /** Initialise une partie de dev (salon + adversaires + écouteurs), comme Game.vue. */
-  async function init() {
+  /**
+   * Branche la scène 3D sur la VRAIE partie multijoueur.
+   * `roomCode` vient de la route (/tarot_africain/game3d/:gameId).
+   * Hydrate l'état depuis le backend, abonne aux events, puis (si host) lance la donne.
+   */
+  async function init(roomCode: string) {
+    if (!roomCode) {
+      console.error('[game3d] init: code de room manquant dans la route')
+      return
+    }
     if (store.players.length > 0) return
-    const { roomId } = await api.createRoom()
-    lobby.roomId = roomId
-    lobby.myId = 'player_me'
-    lobby.isHost = true
-    await api.joinRoom(roomId, { playerId: 'player_me', name: 'Moi', color: '#29a8e0', imageUrl: '' })
-    await api.joinRoom(roomId, { playerId: 'bot_2', name: 'Nadia', color: '#f0435f', imageUrl: '' })
-    await api.joinRoom(roomId, { playerId: 'bot_3', name: 'Kofi', color: '#3fb56b', imageUrl: '' })
-    await api.joinRoom(roomId, { playerId: 'bot_4', name: 'Awa', color: '#f29a2e', imageUrl: '' })
-    await api.joinRoom(roomId, { playerId: 'bot_5', name: 'Yao', color: '#9b5de5', imageUrl: '' })
 
-    const debug = api._debugRoom(roomId)
-    lobby.players = debug.room?.players || []
+    const ok = await store.hydrate(roomCode)
+    if (!ok) return
 
-    store.players = lobby.players.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      color: p.color,
-      imageUrl: p.imageUrl,
-      hand: [],
-      announced: null,
-      tricksWon: 0,
-      lives: 10,
-      isAlive: true,
-    })) as any
+    // Le host désigne le donneur → le backend distribue et diffuse les events à tous.
+    if (lobby.isHost) await apiTarot.setDealer(lobby.roomId)
 
-    store.initGameListeners(lobby.roomId)
-    if (lobby.isHost) await api.setDealer(lobby.roomId)
+    // Filet anti-course : si on s'est abonné après la distribution (events ratés),
+    // on resynchronise /state jusqu'à récupérer notre main.
+    store.ensureDealt(roomCode)
   }
 
   const canPlay = computed(() => state.phase === 'playing' && state.current === state.me)

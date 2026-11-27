@@ -39,6 +39,9 @@ window.Pusher = Pusher
 
 export const echo = new Echo({
   broadcaster: 'reverb',
+  // Les events backend utilisent broadcastAs() = nom court (ex: "CardPlayed").
+  // namespace vide => `.listen('CardPlayed')` écoute bien "CardPlayed" (et non "App.Events.CardPlayed").
+  namespace: '',
   key: import.meta.env.VITE_REVERB_APP_KEY,
   wsHost: import.meta.env.VITE_REVERB_HOST,
   wsPort: parseInt(import.meta.env.VITE_REVERB_PORT as string),

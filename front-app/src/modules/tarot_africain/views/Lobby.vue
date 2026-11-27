@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { GAMES_DATA } from '../data/games'
 import { useLobbyStore } from '../stores/useLobbyStore'
@@ -40,14 +40,24 @@ const makeRoomPublic = async () => {
   }
 }
 
+const goToGame = () => router.push(`/tarot_africain/game3d/${roomCodeUrl}`)
+
 const handleStartGame = async () => {
   if (lobbyStore.roomId) {
     const response = await apiMethods.startTarotGame(lobbyStore.roomId)
     if (response.success) {
-      router.push(`/tarot_africain/game/${roomCodeUrl}`)
+      // évite que onUnmounted (host) ne détruise la room qu'on vient de lancer
+      lobbyStore.status = 'starting'
+      goToGame()
     }
   }
 }
+
+// Les joueurs non-host sont emmenés vers la table quand l'event GameStarted
+// (reçu sur le canal du lobby) fait passer le statut à "starting".
+watch(() => lobbyStore.status, (status) => {
+  if (status === 'starting') goToGame()
+})
 
 onMounted(async () => {
   try {

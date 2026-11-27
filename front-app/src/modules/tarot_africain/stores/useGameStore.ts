@@ -4,8 +4,15 @@ import { Player } from '../models/Player'
 import { Card } from '../models/Card'
 import { Phase } from '../models/Phase'
 
-import { api, echo } from '@/api/mockApi'
+import { echo } from '@/api/echo'
+import apiTarot from '../api'
 import { useLobbyStore } from './useLobbyStore'
+
+// Palette de secours (le backend ne renvoie pas toujours de couleur par joueur)
+const PLAYER_COLORS = ['#29a8e0', '#f0435f', '#3fb56b', '#f29a2e', '#9b5de5']
+
+// Les events backend envoient playerId en string ; on compare toujours en string.
+const sameId = (a: unknown, b: unknown) => String(a) === String(b)
 
 
 // type Phase = 'rolling' | 'dealing' | 'announcing' | 'playing' | 'scoring' | 'gameover'
@@ -72,12 +79,13 @@ export const useGameStore = defineStore('game', {
 
         this.dealer = data.dealerIndex
         this.currentRound = data.round ?? this.currentRound
-        this.currentPlayerIndex = (data.dealerIndex + 1) % this.players.length
+        this.currentPlayerIndex = data.nextPlayerIndex ?? (data.dealerIndex + 1) % this.players.length
         this.phase = Phase.Dealing
 
-        // TODO: bouger vers une channel privé
-        const { hand } = await api.deal(roomId, lobby.myId)
-        const me = this.players.find(p => p.id === lobby.myId)
+        // Chaque client demande sa main : le 1er appel distribue à tous et déclenche CardsDealt
+        const res = await apiTarot.getTarotHand(lobby.roomId)
+        const hand = res.success ? res.data.hand : []
+        const me = this.players.find(p => sameId(p.id, lobby.myId))
         if (me) me.hand = hand
         // order
         // this.players.forEach(p => {
@@ -86,18 +94,24 @@ export const useGameStore = defineStore('game', {
         // console.log('dealer = ', this.players[this.dealer].name)
       })
 
-      channel.listen('CardsDealt', (data: any) => {
+      channel.listen('CardsDealt', async (data: any) => {
         this.cardsPerPlayer = data.cardsPerPlayer
         this.players.forEach(p => {
-          if (p.id !== lobby.myId) {
+          if (!sameId(p.id, lobby.myId)) {
             p.hand = Array(data.cardsPerPlayer).fill(null)
           }
         })
         this.phase = Phase.Announcing
+        // filet : si on a raté DealerSet, on récupère notre vraie main maintenant
+        const me = this.players.find(p => sameId(p.id, lobby.myId))
+        if (me && !(me.hand && me.hand.some((c: any) => c != null))) {
+          const res = await apiTarot.getTarotHand(lobby.roomId)
+          if (res.success) me.hand = res.data.hand
+        }
       })
 
       channel.listen('PlayerAnnounced', (data: any) => {
-        const player = this.players.find(p => p.id === data.playerId)
+        const player = this.players.find(p => sameId(p.id, data.playerId))
         if (player) player.announced = data.count
         this.currentPlayerIndex = data.nextPlayerIndex
       })
@@ -107,11 +121,11 @@ export const useGameStore = defineStore('game', {
       })
 
       channel.listen('CardPlayed', (data: any) => {
-        this.trick.push({ playerId: data.playerId, card: data.card })
-        const player = this.players.find(p => p.id === data.playerId)
+        this.trick.push({ playerId: data.playerId, card: data.card, excuseValue: data.excuseValue ?? undefined })
+        const player = this.players.find(p => sameId(p.id, data.playerId))
         // retire carte
         if (player && player.hand) {
-          if (player.id === lobby.myId) {
+          if (sameId(player.id, lobby.myId)) {
             player.hand = player.hand.filter(c => c?.id !== data.card.id)
           } else {
             player.hand = player.hand.slice(1)
@@ -124,10 +138,10 @@ export const useGameStore = defineStore('game', {
         this.phase = Phase.Resolving
         setTimeout(() => {
           this.trick = []
-          const winner = this.players.find(p => p.id === data.winnerId)
+          const winner = this.players.find(p => sameId(p.id, data.winnerId))
           if (winner) {
             winner.tricksWon++
-            this.currentPlayerIndex = this.players.findIndex(p => p.id === data.winnerId)
+            this.currentPlayerIndex = this.players.findIndex(p => sameId(p.id, data.winnerId))
           }
 
           const hasCardsLeft = this.currentPlayer && this.currentPlayer.hand && this.currentPlayer.hand.length > 0
@@ -145,7 +159,7 @@ export const useGameStore = defineStore('game', {
       channel.listen('RoundScored', (data: any) => {
         this.phase = Phase.Scoring
         data.results.forEach((result: any) => {
-          const player = this.players.find(p => p.id === result.id)
+          const player = this.players.find(p => sameId(p.id, result.id))
           if (player) {
             player.lives = Math.max(0, player.lives - result.livesLost)
 
@@ -166,21 +180,116 @@ export const useGameStore = defineStore('game', {
       })
     },
 
-    async playCard(cardId: number) {
+    async playCard(cardId: number, excuseValue: number | null = null) {
       const lobby = useLobbyStore()
-      await api.playCard(lobby.roomId, { playerId: lobby.myId, cardId })
+      await apiTarot.playTarotCard(lobby.roomId, cardId, excuseValue)
     },
 
     async sendAnnounce(count: number) {
       const lobby = useLobbyStore()
       try {
-        const response = await api.announce(lobby.roomId, { playerId: lobby.myId, count })
-        return response.ok
+        const response = await apiTarot.announceTricks(lobby.roomId, count)
+        return response.success
       } catch (error) {
         console.error("Erreur critique pendant l'annonce :", error)
         return false
       }
-    }
+    },
+
+    /** Applique un snapshot /state au store (joueurs + état). Idempotent (resync). */
+    applyState(payload: any) {
+      const lobby = useLobbyStore()
+      const { room, myId, state } = payload
+
+      lobby.roomId = room.id
+      lobby.roomCode = room.code
+      lobby.myId = myId
+      lobby.isHost = room.players?.find((p: any) => sameId(p.id, myId))?.pivot?.is_host ?? false
+
+      const orderedPlayers: any[] = room.players ?? []
+      this.players = orderedPlayers.map((p, i) => {
+        const pid = String(p.id)
+        const lives = state?.lives?.[pid] ?? 10
+        const mine = sameId(pid, myId)
+        let hand: any[] = []
+        if (state) {
+          hand = mine
+            ? (state.myHand ?? [])
+            : Array(state.handCounts?.[pid] ?? 0).fill(null)
+        }
+        return {
+          id: pid,
+          name: p.firstname,
+          color: p.pivot?.color ?? PLAYER_COLORS[i % PLAYER_COLORS.length],
+          imageUrl: '',
+          hand,
+          announced: state?.announcements?.[pid] ?? null,
+          tricksWon: state?.tricksWon?.[pid] ?? 0,
+          lives,
+          isAlive: lives > 0,
+        }
+      }) as any
+
+      if (state) {
+        this.currentRound = state.round ?? 1
+        this.dealer = state.dealerIndex ?? 0
+        this.currentPlayerIndex = state.currentPlayerIndex ?? 0
+        this.cardsPerPlayer = state.cardsPerPlayer ?? 0
+        this.phase = state.phase === 'finished' ? Phase.GameOver : (state.phase as Phase) ?? Phase.Dealing
+        this.trick = (state.trick ?? []).map((t: any) => ({
+          playerId: t.playerId,
+          card: t.card,
+          excuseValue: t.excuseValue ?? undefined,
+        }))
+      } else {
+        // Partie lancée mais donneur pas encore désigné
+        this.phase = Phase.Dealing
+      }
+    },
+
+    /** Récupère /state et l'applique (sans toucher aux abonnements). */
+    async fetchState(roomCode: string) {
+      const res = await apiTarot.getState(roomCode)
+      if (!res.success) {
+        console.error('[game] /state a échoué', res.message)
+        return false
+      }
+      this.applyState(res.data)
+      return true
+    },
+
+    /**
+     * Hydrate le store depuis le backend réel puis abonne aux events temps réel.
+     * Robuste au refresh : l'écran de jeu est auto-suffisant à partir du code de room.
+     */
+    async hydrate(roomCode: string) {
+      const ok = await this.fetchState(roomCode)
+      if (!ok) return false
+      const lobby = useLobbyStore()
+      this.initGameListeners(String(lobby.roomId))
+      return true
+    },
+
+    /** Vrai si le joueur courant a reçu de vraies cartes (pas juste des dos masqués). */
+    hasMyHand() {
+      const lobby = useLobbyStore()
+      const me = this.players.find(p => sameId(p.id, lobby.myId))
+      return !!(me && me.hand && me.hand.length > 0 && me.hand.some((c: any) => c != null))
+    },
+
+    /**
+     * Filet anti-course : un joueur qui s'abonne APRÈS la distribution rate
+     * DealerSet/CardsDealt (Reverb ne rejoue pas). On resynchronise /state en boucle
+     * bornée jusqu'à récupérer notre main, puis on s'arrête.
+     */
+    async ensureDealt(roomCode: string, tries = 6, delayMs = 1200) {
+      for (let i = 0; i < tries; i++) {
+        if (this.hasMyHand()) return
+        await new Promise(r => setTimeout(r, delayMs))
+        if (this.hasMyHand()) return
+        await this.fetchState(roomCode)
+      }
+    },
   }
 })
 

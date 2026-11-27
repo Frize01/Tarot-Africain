@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import TarotTable3D from '../3d/components/TarotTable3D.vue'
 import TarotHud from '../3d/components/TarotHud.vue'
-import DevControlPanel from '../components/DevControlPanel.vue'
 import { useTarotStoreGame } from '../3d/game/useStoreBridge'
 
+const route = useRoute()
 const router = useRouter()
 
-// Jeu réel (store + mockApi/Reverb) exposé au format GameState de la scène 3D
+// Jeu réel (store Pinia + vrai backend via Reverb) exposé au format GameState de la scène 3D
 const game = useTarotStoreGame()
 const { state, canPlay } = game
 
@@ -16,15 +16,13 @@ function onPlay(id: string) {
   game.playCard(state.me, id)
 }
 
-onMounted(() => game.init())
+// Le :gameId de la route est le CODE de la room (cf. Lobby).
+onMounted(() => game.init(route.params.gameId as string))
 </script>
 
 <template>
   <div class="game3d-wrapper">
     <button class="game3d-back" @click="router.push({ name: 'home' })">← Retour</button>
-
-    <!-- Panneau dev : pilote les annonces / coups des autres joueurs (comme la vue 2D) -->
-    <DevControlPanel />
 
     <template v-if="state.players.length">
       <TarotTable3D :game="state" :can-play="canPlay" @play="onPlay" />

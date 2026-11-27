@@ -1,0 +1,80 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Base de données MySQL 8
+  # ---------------------------------------------------------------------------
+  db:
+    image: mysql:8
+    container_name: tarot-db
+    environment:
+      MYSQL_DATABASE: tarot
+      MYSQL_USER: tarot
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      # Exposé sur 3307 côté host pour éviter de taper un MySQL local déjà sur 3306
+      - "3307:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "tarot", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  # ---------------------------------------------------------------------------
+  # API Laravel (php artisan serve) -> http://localhost:8000
+  # ---------------------------------------------------------------------------
+  backend:
+    build: ./back-app
+    container_name: tarot-backend
+    command: ["app"]
+    volumes:
+      - ./back-app:/var/www/html
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Serveur websocket Reverb (temps réel) -> ws://localhost:8080
+  # ---------------------------------------------------------------------------
+  reverb:
+    build: ./back-app
+    container_name: tarot-reverb
+    command: ["reverb"]
+    volumes:
+      - ./back-app:/var/www/html
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # Worker de queue Laravel
+  # ---------------------------------------------------------------------------
+  queue:
+    build: ./back-app
+    container_name: tarot-queue
+    command: ["queue"]
+    volumes:
+      - ./back-app:/var/www/html
+    depends_on:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # Front Vue 3 + Vite (hot reload) -> http://localhost:9999
+  # ---------------------------------------------------------------------------
+  frontend:
+    build: ./front-app
+    container_name: tarot-frontend
+    volumes:
+      - ./front-app:/app
+      - /app/node_modules
+    ports:
+      - "9999:9999"
+    depends_on:
+      - backend
+
+volumes:
+  db-data:

@@ -12,6 +12,9 @@ const authApi = axios.create({
   },
   withCredentials: true,
 
+  // Front (localhost:9999) et API (localhost:8000) sont sur des origines différentes.
+  // Depuis axios 1.x, le header X-XSRF-TOKEN n'est envoyé en cross-origin que si withXSRFToken est actif.
+  withXSRFToken: true,
   xsrfCookieName: 'XSRF-TOKEN',
   xsrfHeaderName: 'X-XSRF-TOKEN',
 });

@@ -15,6 +15,7 @@ class GameSeeder extends Seeder
         \App\Models\Game::create([
             'id' => 1,
             'name' => 'Tarot Africain',
+            'slug' => 'tarot_africain',
             'min_players' => 3,
             'max_players' => 5,
             'url' => '/tarot_africain',
