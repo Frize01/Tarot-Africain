@@ -42,7 +42,23 @@ const makeRoomPublic = async () => {
   }
 }
 
-const goToGame = () => router.push(`/tarot_africain/game3d/${roomCodeUrl}`)
+let navigated = false
+const goToGame = () => {
+  if (navigated) return
+  navigated = true
+  if (startedPoll) { clearInterval(startedPoll); startedPoll = undefined }
+  router.push(`/tarot_africain/game3d/${roomCodeUrl}`)
+}
+
+let startedPoll: ReturnType<typeof setInterval> | undefined
+function startStartedWatch() {
+  if (startedPoll) return
+  startedPoll = setInterval(async () => {
+    const res = await apiMethods.getState(roomCodeUrl)
+    const status = res.success ? res.data?.room?.status : undefined
+    if (status && status !== 'waiting') goToGame()
+  }, 2500)
+}
 
 const handleStartGame = async () => {
   if (lobbyStore.roomId) {
@@ -81,6 +97,7 @@ onMounted(async () => {
       }
 
       lobbyStore.initRoomData(response.data, currentUserId)
+      startStartedWatch()
     } else {
       toast.error("Impossible de rejoindre la salle :", response.message)
       router.push('/tarot_africain/informations')
@@ -91,6 +108,7 @@ onMounted(async () => {
 })
 
 onUnmounted(async () => {
+  if (startedPoll) { clearInterval(startedPoll); startedPoll = undefined }
   if (lobbyStore.isHost && lobbyStore.status !== 'starting') {
     try {
       console.log("L'host quitte le lobby, fermeture du salon et kick des joueurs...");
