@@ -10,12 +10,14 @@ import bushCastle from '@/asset/bushCastle.webp'
 import only_castle from '@/asset/only_castle.png'
 import only_background from '@/asset/only_background.png'
 
-const { user, isLoggedIn, loginUser, logoutUser } = useAuth()
+const { user, isLoggedIn, isGuest, loginUser, logoutUser } = useAuth()
 const router = useRouter()
 const toast = useToast()
 
 onMounted(() => {
-  if (!isLoggedIn.value) router.replace('/auth')
+  if (!isLoggedIn.value) return router.replace('/auth')
+  // Un invité (pseudo temporaire) n'a pas de compte → pas d'accès à cette page.
+  if (isGuest.value) router.replace('/')
 })
 
 /* ───────── Identité ───────── */

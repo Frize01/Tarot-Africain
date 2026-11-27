@@ -5,7 +5,12 @@ const userState = ref<any>(
 )
 
 export function useAuth() {
+  // isLoggedIn = a une session (invité OU vrai compte) → sert au flux de jeu
   const isLoggedIn = computed(() => !!userState.value)
+  // invité = pseudo temporaire, PAS un compte
+  const isGuest = computed(() => !!userState.value?.is_guest)
+  // vrai compte authentifié (ni déconnecté, ni invité)
+  const isAuthenticated = computed(() => !!userState.value && !userState.value.is_guest)
 
   const user = computed(() => userState.value)
 
@@ -22,6 +27,8 @@ export function useAuth() {
   return {
     user,
     isLoggedIn,
+    isGuest,
+    isAuthenticated,
     loginUser,
     logoutUser
   }

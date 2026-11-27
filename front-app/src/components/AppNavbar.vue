@@ -7,12 +7,20 @@ import VButton from '@/components/VButton.vue'
 import VInput from '@/components/VInput.vue'
 
 import { useAuth } from '@/composables/useAuth'
+import apiMethods from '@/api'
 
 import logo from '@/asset/logo_app.png'
 
-const { isLoggedIn, user, logoutUser } = useAuth()
+const { isLoggedIn, isGuest, isAuthenticated, user, logoutUser } = useAuth()
 const router = useRouter()
 const search = ref('')
+
+// Quitter le mode invité (le pseudo temporaire n'est pas un compte)
+async function leaveGuest() {
+  try { await apiMethods.logout() } catch { /* ignore */ }
+  logoutUser()
+  router.push('/')
+}
 
 const closeMenu = () => {
   const elem = document.activeElement as HTMLElement
@@ -145,6 +153,29 @@ onUnmounted(() => {
           Se connecter
         </VButton>
 
+        <!-- Invité : pseudo temporaire, ce n'est PAS un compte -->
+        <div v-else-if="isGuest" class="dropdown dropdown-end">
+          <VButton
+            tabindex="0"
+            ariaLabel="Invité"
+            class="text-white bg-transparent hover:bg-white/10"
+          >
+            <template #icon>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.9">
+                <circle cx="12" cy="7.25" r="5.73" />
+                <path d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05" />
+              </svg>
+            </template>
+            {{ user?.firstname }}
+            <span class="ml-1 rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Invité</span>
+          </VButton>
+          <ul tabindex="0" class="dropdown-content menu z-[60] mt-2 w-60 rounded-box border border-white/10 bg-gray-800 p-2 text-white shadow-xl">
+            <li><a @click="router.push('/auth'); closeMenu()">Créer un compte / Se connecter</a></li>
+            <li><a class="text-rose-300" @click="leaveGuest(); closeMenu()">Quitter le mode invité</a></li>
+          </ul>
+        </div>
+
+        <!-- Vrai compte authentifié -->
         <VButton v-else
           ariaLabel="Mon Compte"
           class="text-white bg-transparent hover:bg-white/10"
