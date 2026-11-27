@@ -58,7 +58,11 @@ export interface GameState {
   lastTrickWinner: number | null
   results: RoundResult[]
   winner: number | null
+  /** échéance du tour courant en horloge CLIENT (ms, 0 si aucun minuteur actif) */
+  turnEndsAt: number
 }
 
 export const isHidden = (id: CardId) => id.startsWith('X')
-export const cardValue = (id: CardId): number => (id === 'E' ? 0 : Number(id))
+// 'E' = Excuse (0 par défaut) ; 'E0'/'E22' = Excuse posée à sa valeur ; sinon un atout.
+export const cardValue = (id: CardId): number =>
+  id[0] === 'E' ? (id.length > 1 ? Number(id.slice(1)) : 0) : Number(id)

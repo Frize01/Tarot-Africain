@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import type { GameState } from '../game/types'
 
 const props = defineProps<{ game: GameState; forbiddenBet: number | null }>()
@@ -8,6 +8,19 @@ const emit = defineEmits<{ bet: [n: number]; excuse: [v: 0 | 22]; restart: [] }>
 const me = computed(() => props.game.players[props.game.me])
 const myTurn = computed(() => props.game.current === props.game.me)
 const currentName = computed(() => props.game.players[props.game.current]?.name ?? '')
+
+// Horloge locale qui tick pour le compte à rebours du tour
+const now = ref(Date.now())
+let ticker: ReturnType<typeof setInterval> | undefined
+onMounted(() => { ticker = setInterval(() => (now.value = Date.now()), 250) })
+onUnmounted(() => clearInterval(ticker))
+
+// Secondes restantes avant que l'IA prenne le relais (null si pas de minuteur actif)
+const secondsLeft = computed<number | null>(() => {
+  const t = props.game.turnEndsAt
+  if (!t || !['betting', 'playing'].includes(props.game.phase)) return null
+  return Math.max(0, Math.ceil((t - now.value) / 1000))
+})
 
 const status = computed(() => {
   const g = props.game
@@ -33,6 +46,9 @@ const totalBets = computed(() => props.game.players.reduce((s, p) => s + (p.bet 
     <div class="turn-pill">
       <div class="round">MANCHE {{ game.round }} · {{ game.cardsPerRound }} CARTE{{ game.cardsPerRound > 1 ? 'S' : '' }}</div>
       <div class="status">{{ status }}</div>
+      <div v-if="secondsLeft !== null" class="timer" :class="{ urgent: secondsLeft <= 5, mine: myTurn }">
+        ⏱ {{ secondsLeft }}s<span v-if="myTurn && secondsLeft <= 5" class="timer-hint"> — sinon l’IA joue</span>
+      </div>
     </div>
 
     <div v-if="game.blind && ['betting', 'playing'].includes(game.phase)" class="blind-tip">
@@ -128,6 +144,14 @@ const totalBets = computed(() => props.game.players.reduce((s, p) => s + (p.bet 
 }
 .round { font-size: 10px; letter-spacing: 2px; color: #d9b977; font-weight: 600; }
 .status { font-size: 14px; font-weight: 700; }
+.timer {
+  margin-top: 2px; font-size: 12px; font-weight: 700; color: #e9c46a;
+  font-variant-numeric: tabular-nums;
+}
+.timer.mine { color: #8fe0a0; }
+.timer.urgent { color: #ff7a6b; animation: pulse 1s ease-in-out infinite; }
+.timer-hint { font-size: 10px; font-weight: 600; opacity: 0.85; }
+@keyframes pulse { 50% { opacity: 0.45; } }
 
 .blind-tip {
   position: absolute; top: calc(max(10px, env(safe-area-inset-top)) + 58px); left: 50%; transform: translateX(-50%);

@@ -5,7 +5,7 @@
  * Remplace le moteur local `useTarotGame` : la 3D lit désormais l'état du vrai jeu
  * et émet ses actions (annonce / jeu) vers le store, exactement comme la vue 2D.
  */
-import { reactive, computed, watchEffect } from 'vue'
+import { reactive, ref, computed, watchEffect } from 'vue'
 import type { GameState, CardId } from './types'
 import { useGameStore } from '../../stores/useGameStore'
 import { useLobbyStore } from '../../stores/useLobbyStore'
@@ -31,6 +31,9 @@ export function useTarotStoreGame() {
   const store = useGameStore()
   const lobby = useLobbyStore()
 
+  // Carte Excuse posée par le joueur local, en attente du choix de valeur (0 ou 22).
+  const pendingExcuse = ref<any | null>(null)
+
   const state = reactive<GameState>({
     players: [],
     me: 0,
@@ -45,6 +48,7 @@ export function useTarotStoreGame() {
     lastTrickWinner: null,
     results: [],
     winner: null,
+    turnEndsAt: 0,
   })
 
   // Synchronise le GameState 3D à chaque changement du store
@@ -56,7 +60,9 @@ export function useTarotStoreGame() {
     state.cardsPerRound = store.cardsPerPlayer
     state.dealer = store.dealer
     state.current = store.currentPlayerIndex
-    state.phase = PHASE_MAP[store.phase] ?? 'idle'
+    // Phase locale « excuse » : le joueur local a posé l'Excuse et doit choisir 0/22.
+    state.phase = pendingExcuse.value ? 'excuse' : (PHASE_MAP[store.phase] ?? 'idle')
+    state.turnEndsAt = store.turnEndsAt
     state.blind = false
     state.players = players.map((p, i) => ({
       id: i,
@@ -70,11 +76,16 @@ export function useTarotStoreGame() {
       eliminated: !(p.isAlive ?? (p.lives ?? 0) > 0),
       isHuman: sameId(p.id, lobby.myId),
     }))
-    state.trick = store.trick.map((t: any) => ({
-      player: players.findIndex((p) => p.id === t.playerId),
-      card: cardId(t.card),
-      value: t.card == null ? 0 : t.card.value == null ? t.excuseValue ?? 0 : t.card.value,
-    }))
+    state.trick = store.trick.map((t: any) => {
+      const isExcuse = t.card != null && t.card.value == null
+      // Excuse posée : on encode la valeur choisie dans l'id ('E0'/'E22') pour l'afficher
+      const card: CardId = isExcuse && t.excuseValue != null ? `E${t.excuseValue}` : cardId(t.card)
+      return {
+        player: players.findIndex((p) => sameId(p.id, t.playerId)),
+        card,
+        value: t.card == null ? 0 : isExcuse ? (t.excuseValue ?? 0) : t.card.value,
+      }
+    })
     state.wonPiles = players.map(() => [])
     state.lastTrickWinner = null
     state.winner =
@@ -104,11 +115,21 @@ export function useTarotStoreGame() {
   function playCard(_me: number, id: CardId) {
     const my = (store.players as any[]).find((p) => sameId(p.id, lobby.myId))
     const card = (my?.hand ?? []).find((c: any) => c && cardId(c) === id)
-    if (card) store.playCard(card.id)
+    if (!card) return
+    // L'Excuse (valeur null) : on n'envoie pas tout de suite, on demande 0 ou 22.
+    if (card.value == null) {
+      pendingExcuse.value = card
+      return
+    }
+    store.playCard(card.id)
   }
 
-  // La phase « excuse » (0/22) n'est pas encore pilotée par l'UI 3D → no-op
-  function chooseExcuse() {}
+  // Le joueur local a choisi la valeur de l'Excuse (0 ou 22) → on envoie le coup.
+  function chooseExcuse(v: 0 | 22) {
+    const card = pendingExcuse.value
+    pendingExcuse.value = null
+    if (card) store.playCard(card.id, v)
+  }
 
   /**
    * Branche la scène 3D sur la VRAIE partie multijoueur.

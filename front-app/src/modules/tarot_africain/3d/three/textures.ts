@@ -103,22 +103,26 @@ function trumpFront(v: number) {
   return toTexture(c)
 }
 
-function excuseFront() {
+// value indéfini = Excuse non jouée (★, « 0 ou 22 »).
+// value = 0 ou 22 = Excuse posée → on affiche le nombre choisi pour que tout le monde le voie.
+function excuseFront(value?: number) {
   const [c, ctx] = makeCanvas(CW, CH)
+  const played = value != null
+  const big = played ? String(value) : '★'
   paper(ctx)
   frame(ctx, GOLD)
-  corner(ctx, '★', RED)
+  corner(ctx, big, RED)
   sun(ctx, CW / 2, CH / 2 - 20, 96, GOLD)
   ctx.fillStyle = RED
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.font = '150px serif'
-  ctx.fillText('★', CW / 2, CH / 2 - 20)
+  ctx.font = played ? 'bold 140px Georgia, serif' : '150px serif'
+  ctx.fillText(big, CW / 2, CH / 2 - 20)
   ctx.font = 'bold 30px Georgia, serif'
   ctx.fillText('EXCUSE', CW / 2, CH - 84)
   ctx.font = 'bold 22px Georgia, serif'
   ctx.fillStyle = '#8a6a12'
-  ctx.fillText('0  ou  22', CW / 2, CH - 56)
+  ctx.fillText(played ? `VAUT ${value}` : '0  ou  22', CW / 2, CH - 56)
   return toTexture(c)
 }
 
@@ -157,7 +161,12 @@ function cardBack() {
 export function cardTexture(id: string) {
   const key = id.startsWith('X') ? 'back' : id
   if (!cache.has(key)) {
-    cache.set(key, key === 'back' ? cardBack() : key === 'E' ? excuseFront() : trumpFront(Number(key)))
+    let tex
+    if (key === 'back') tex = cardBack()
+    else if (key === 'E') tex = excuseFront()           // Excuse non encore jouée
+    else if (key[0] === 'E') tex = excuseFront(Number(key.slice(1))) // 'E0' / 'E22' : Excuse posée
+    else tex = trumpFront(Number(key))
+    cache.set(key, tex)
   }
   return cache.get(key)!
 }

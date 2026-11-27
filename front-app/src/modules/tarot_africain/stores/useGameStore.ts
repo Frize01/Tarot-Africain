@@ -38,6 +38,8 @@ export const useGameStore = defineStore('game', {
     trickHistory: [] as any[],
     // résumé ki joué koi
     roundHistory: [] as any[],
+    // échéance du tour courant, en horloge CLIENT (ms). 0 = pas de minuteur.
+    turnEndsAt: 0,
   }),
 
   getters: {
@@ -81,6 +83,7 @@ export const useGameStore = defineStore('game', {
         this.currentRound = data.round ?? this.currentRound
         this.currentPlayerIndex = data.nextPlayerIndex ?? (data.dealerIndex + 1) % this.players.length
         this.phase = Phase.Dealing
+        this.turnEndsAt = 0
 
         // Chaque client demande sa main : le 1er appel distribue à tous et déclenche CardsDealt
         const res = await apiTarot.getTarotHand(lobby.roomId)
@@ -177,6 +180,15 @@ export const useGameStore = defineStore('game', {
 
       channel.listen('GameOver', (data: any) => {
         this.phase = Phase.GameOver
+        this.turnEndsAt = 0
+      })
+
+      // Minuteur du tour : l'IA prend le relais à l'échéance.
+      // On ancre la deadline sur l'horloge CLIENT via la durée restante côté serveur.
+      channel.listen('TurnStarted', (data: any) => {
+        this.currentPlayerIndex = data.currentPlayerIndex
+        const remaining = Math.max(0, (data.deadline ?? 0) - (data.serverNow ?? 0))
+        this.turnEndsAt = remaining > 0 ? Date.now() + remaining : 0
       })
     },
 
@@ -241,9 +253,13 @@ export const useGameStore = defineStore('game', {
           card: t.card,
           excuseValue: t.excuseValue ?? undefined,
         }))
+        // minuteur du tour : la deadline serveur est réancrée sur l'horloge client
+        const remaining = Math.max(0, (state.turnDeadline ?? 0) - (state.serverNow ?? 0))
+        this.turnEndsAt = remaining > 0 ? Date.now() + remaining : 0
       } else {
         // Partie lancée mais donneur pas encore désigné
         this.phase = Phase.Dealing
+        this.turnEndsAt = 0
       }
     },
 
