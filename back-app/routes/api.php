@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TarotAfricainController;
 
 /*
@@ -13,6 +14,10 @@ use App\Http\Controllers\TarotAfricainController;
 */
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Profil / sécurité
+    Route::put('/profile', [ProfileController::class, 'update']);
+    Route::put('/password', [ProfileController::class, 'updatePassword']);
 
     Route::post('/rooms', [RoomController::class, 'create']);
     Route::post('/rooms/{room}/open-room', [RoomController::class, 'makeRoomPublic']);

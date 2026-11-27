@@ -33,6 +33,14 @@ export default {
     return apiHandler('post', '/api/logout');
   },
 
+  // --- Profil / sécurité ---
+  updateProfile(data: { firstname: string; lastname: string; email: string }) {
+    return apiHandler('put', '/api/profile', data);
+  },
+  updatePassword(data: { current_password: string; password: string; password_confirmation: string }) {
+    return apiHandler('put', '/api/password', data);
+  },
+
   // --- Présence générique (réutilisable par tous les jeux) ---
   getRoomPresence(roomId: string | number) {
     return apiHandler('get', `/api/rooms/${roomId}/presence`);
