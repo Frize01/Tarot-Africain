@@ -9,8 +9,10 @@ import { reactive, ref, computed, watchEffect } from 'vue'
 import type { GameState, CardId } from './types'
 import { useGameStore } from '../../stores/useGameStore'
 import { useLobbyStore } from '../../stores/useLobbyStore'
+import { useActiveGame } from '@/stores/useActiveGame'
 import { Phase } from '../../models/Phase'
 import apiTarot from '../../api'
+import appApi from '@/api/appApi'
 
 const sameId = (a: unknown, b: unknown) => String(a) === String(b)
 
@@ -30,6 +32,7 @@ const cardId = (c: any): CardId => (c == null ? 'X' : c.value == null ? 'E' : St
 export function useTarotStoreGame() {
   const store = useGameStore()
   const lobby = useLobbyStore()
+  const activeGame = useActiveGame()
 
   // Carte Excuse posée par le joueur local, en attente du choix de valeur (0 ou 22).
   const pendingExcuse = ref<any | null>(null)
@@ -75,6 +78,7 @@ export function useTarotStoreGame() {
       tricks: p.tricksWon ?? 0,
       eliminated: !(p.isAlive ?? (p.lives ?? 0) > 0),
       isHuman: sameId(p.id, lobby.myId),
+      away: !!p.away,
     }))
     state.trick = store.trick.map((t: any) => {
       const isExcuse = t.card != null && t.card.value == null
@@ -86,13 +90,19 @@ export function useTarotStoreGame() {
         value: t.card == null ? 0 : isExcuse ? (t.excuseValue ?? 0) : t.card.value,
       }
     })
-    state.wonPiles = players.map(() => [])
+    // Tas des plis gagnés (dos de cartes) posés à côté de chaque joueur.
+    // Ids uniques commençant par 'X' → rendus face cachée, sans collision avec mains/pli.
+    state.wonPiles = players.map((p, i) =>
+      Array.from({ length: (p as any).wonCount ?? 0 }, (_, j) => `Xwon${i}_${j}`),
+    )
     state.lastTrickWinner = null
     state.winner =
       store.phase === Phase.GameOver
         ? players.findIndex((p) => p.isAlive ?? (p.lives ?? 0) > 0)
         : null
     state.results = []
+    // Partie terminée → plus rien à reprendre
+    if (store.phase === Phase.GameOver) activeGame.clear()
   })
 
   // Annonce interdite pour le dernier annonceur (total = nb de cartes)
@@ -136,15 +146,43 @@ export function useTarotStoreGame() {
    * `roomCode` vient de la route (/tarot_africain/game3d/:gameId).
    * Hydrate l'état depuis le backend, abonne aux events, puis (si host) lance la donne.
    */
+  // (Ré)enregistre la session reprenable + se signale "présent". Idempotent (OK à la reprise).
+  function markPresentAndResumable(roomCode: string) {
+    if (store.phase !== Phase.GameOver) {
+      activeGame.set({
+        gameSlug: 'tarot_africain',
+        gameName: 'Tarot Africain',
+        roomCode,
+        resumePath: `/tarot_africain/game3d/${roomCode}`,
+      })
+    }
+    if (lobby.roomId) {
+      appApi.setRoomPresence(lobby.roomId, false) // je ne suis plus "away"
+      store.hydratePresence()                     // état de présence des autres
+    }
+  }
+
   async function init(roomCode: string) {
     if (!roomCode) {
       console.error('[game3d] init: code de room manquant dans la route')
       return
     }
-    if (store.players.length > 0) return
+    // Vraie reprise : le store tient DÉJÀ cette room (même code) → on ne ré-hydrate pas,
+    // on se re-signale juste présent.
+    if (store.players.length > 0 && sameId(store.loadedRoomCode, roomCode)) {
+      markPresentAndResumable(roomCode)
+      return
+    }
+
+    // Room différente (nouvelle partie) ou résidu d'une partie précédente → on repart propre.
+    if (store.loadedRoomCode && !sameId(store.loadedRoomCode, roomCode)) {
+      store.resetForNewRoom()
+    }
 
     const ok = await store.hydrate(roomCode)
     if (!ok) return
+
+    markPresentAndResumable(roomCode)
 
     // Le host désigne le donneur → le backend distribue et diffuse les events à tous.
     if (lobby.isHost) await apiTarot.setDealer(lobby.roomId)
@@ -154,7 +192,17 @@ export function useTarotStoreGame() {
     store.ensureDealt(roomCode)
   }
 
+  /** Le joueur quitte l'écran : l'IA prend le relais, sa plaque passe en icône robot chez les autres. */
+  function leave() {
+    if (lobby.roomId) appApi.setRoomPresence(lobby.roomId, true)
+  }
+
+  /** Idem mais fiable à la FERMETURE de l'onglet/fenêtre (fetch keepalive). */
+  function leaveBeacon() {
+    if (lobby.roomId) appApi.presenceBeacon(lobby.roomId, true)
+  }
+
   const canPlay = computed(() => state.phase === 'playing' && state.current === state.me)
 
-  return { state, forbiddenBet, placeBet, playCard, chooseExcuse, init, canPlay }
+  return { state, forbiddenBet, placeBet, playCard, chooseExcuse, init, leave, leaveBeacon, canPlay }
 }

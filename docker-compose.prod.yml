@@ -1,0 +1,58 @@
+# Stack de PRODUCTION (derrière Caddy, qui termine le HTTPS et sert le front buildé).
+# Les ports ne sont exposés que sur 127.0.0.1 : seul Caddy (sur l'hôte) y accède.
+services:
+  db:
+    image: mysql:8
+    container_name: tarot-db-prod
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: tarot
+      MYSQL_USER: tarot
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - tarot_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "tarot", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./back-app
+    image: tarot-backend
+    container_name: tarot-backend-prod
+    restart: unless-stopped
+    command: ["app"]
+    volumes:
+      - ./back-app:/var/www/html
+    ports:
+      - "127.0.0.1:8001:8000"   # API Laravel → Caddy
+    depends_on:
+      db:
+        condition: service_healthy
+
+  reverb:
+    image: tarot-backend
+    container_name: tarot-reverb-prod
+    restart: unless-stopped
+    command: ["reverb"]
+    volumes:
+      - ./back-app:/var/www/html
+    ports:
+      - "127.0.0.1:8081:8080"   # websocket → Caddy (/app)
+    depends_on:
+      - backend
+
+  queue:
+    image: tarot-backend
+    container_name: tarot-queue-prod
+    restart: unless-stopped
+    command: ["queue"]
+    volumes:
+      - ./back-app:/var/www/html
+    depends_on:
+      - backend
+
+volumes:
+  tarot_db_data:

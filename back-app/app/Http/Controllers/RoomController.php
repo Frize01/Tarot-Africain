@@ -6,10 +6,12 @@ use App\Models\Room;
 use App\Contracts\GameServiceContract;
 use App\Events\PlayerJoined;
 use App\Events\GameStarted;
+use App\Events\PlayerPresenceChanged;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\Game;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 class RoomController extends Controller
 {
     public function __construct(private readonly GameServiceContract $gameService) {}
@@ -129,5 +131,47 @@ class RoomController extends Controller
         return response()->json(['message' => 'Le salon a été fermé avec succès.']);
     }
 
+    /* -----------------------------------------------------------------------
+     | Présence générique (réutilisable par tous les jeux)
+     | Un joueur signale qu'il a quitté l'écran de jeu (away) ou qu'il revient.
+     | L'IA joue déjà ses tours via le timeout ; ceci sert à l'affichage.
+     * --------------------------------------------------------------------- */
+    private function awayCacheKey(Room $room): string
+    {
+        return "room:{$room->id}:away";
+    }
 
+    private function awaySet(Room $room): array
+    {
+        return Cache::get($this->awayCacheKey($room), []);
+    }
+
+    public function getPresence(Request $request, Room $room)
+    {
+        return response()->json(['away' => array_values($this->awaySet($room))]);
+    }
+
+    public function setPresence(Request $request, Room $room)
+    {
+        $request->validate(['away' => 'required|boolean']);
+
+        $userId = (string) $request->user()->id;
+
+        // Le joueur doit faire partie de la room
+        if (!$room->players()->where('user_id', $request->user()->id)->exists()) {
+            return response()->json(['message' => "Vous ne faites pas partie de cette partie."], 403);
+        }
+
+        $away = $request->boolean('away');
+        $set  = $this->awaySet($room);
+        $set  = array_values(array_filter($set, fn ($id) => $id !== $userId));
+        if ($away) {
+            $set[] = $userId;
+        }
+        Cache::put($this->awayCacheKey($room), $set, now()->addHours(6));
+
+        broadcast(new PlayerPresenceChanged((string) $room->id, $userId, $away));
+
+        return response()->json(['away' => $set]);
+    }
 }

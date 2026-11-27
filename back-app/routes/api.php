@@ -20,6 +20,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/rooms/{room:code}/join', [RoomController::class, 'join']);
     Route::post('/rooms/{room}/start', [RoomController::class, 'start']);
+
+    // Présence générique (réutilisable par tous les jeux) : away / retour
+    Route::get('/rooms/{room}/presence', [RoomController::class, 'getPresence']);
+    Route::post('/rooms/{room}/presence', [RoomController::class, 'setPresence']);
     Route::get('/rooms/{room:code}/state', [TarotAfricainController::class, 'state']);
     Route::post('/rooms/{room}/dealer', [TarotAfricainController::class, 'setDealer']);
     Route::post('/rooms/{room}/deal', [TarotAfricainController::class, 'deal']);

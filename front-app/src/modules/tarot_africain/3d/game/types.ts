@@ -16,6 +16,8 @@ export interface Player {
   tricks: number
   eliminated: boolean
   isHuman: boolean
+  /** le joueur a quitté l'écran : l'IA joue à sa place → on affiche une icône robot */
+  away: boolean
 }
 
 export interface TrickPlay {

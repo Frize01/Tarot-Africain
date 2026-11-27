@@ -476,9 +476,9 @@ onBeforeUnmount(() => {
         }"
         :style="{ transform: `translate(${labels[i]!.x}px, ${labels[i]!.y}px) translate(${labels[i]!.ax}%, -100%)` }"
       >
-        <div class="plate">
-          <span class="dot" :style="{ background: p.color }">{{ initials(p.name) }}</span>
-          <span class="name">{{ p.name }}</span>
+        <div class="plate" :class="{ away: p.away }">
+          <span class="dot" :style="{ background: p.away ? '#4a4a55' : p.color }">{{ p.away ? '🤖' : initials(p.name) }}</span>
+          <span class="name">{{ p.name }}<span v-if="p.away" class="ai-tag">IA</span></span>
           <span class="lives">{{ p.lives }} ♥</span>
           <span v-if="game.dealer === i" class="dealer">D</span>
         </div>
@@ -531,6 +531,13 @@ onBeforeUnmount(() => {
   display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff;
 }
 .name { font-weight: 600; }
+.plate.away { border-color: #7f8aa0; border-style: dashed; }
+.plate.away .dot { font-size: 13px; }
+.ai-tag {
+  margin-left: 5px; padding: 0 5px; border-radius: 4px;
+  background: #4a4a55; color: #cfe0ff; font-size: 9px; font-weight: 800; letter-spacing: .5px;
+  vertical-align: middle;
+}
 .lives { color: #ff8a8a; font-weight: 700; }
 .dealer {
   width: 16px; height: 16px; border-radius: 50%;

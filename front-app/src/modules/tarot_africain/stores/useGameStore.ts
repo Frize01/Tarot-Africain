@@ -6,6 +6,7 @@ import { Phase } from '../models/Phase'
 
 import { echo } from '@/api/echo'
 import apiTarot from '../api'
+import appApi from '@/api/appApi'
 import { useLobbyStore } from './useLobbyStore'
 
 // Palette de secours (le backend ne renvoie pas toujours de couleur par joueur)
@@ -40,6 +41,9 @@ export const useGameStore = defineStore('game', {
     roundHistory: [] as any[],
     // échéance du tour courant, en horloge CLIENT (ms). 0 = pas de minuteur.
     turnEndsAt: 0,
+    // room dont les données sont actuellement chargées (pour distinguer reprise vs nouvelle partie)
+    loadedRoomId: '',
+    loadedRoomCode: '',
   }),
 
   getters: {
@@ -76,6 +80,7 @@ export const useGameStore = defineStore('game', {
           this.players.forEach(p => {
             p.announced = null
             p.tricksWon = 0
+            ;(p as any).wonCount = 0
             p.hand = []
           })
 
@@ -144,6 +149,7 @@ export const useGameStore = defineStore('game', {
           const winner = this.players.find(p => sameId(p.id, data.winnerId))
           if (winner) {
             winner.tricksWon++
+            ;(winner as any).wonCount = ((winner as any).wonCount ?? 0) + (data.trick?.length ?? 0)
             this.currentPlayerIndex = this.players.findIndex(p => sameId(p.id, data.winnerId))
           }
 
@@ -173,6 +179,7 @@ export const useGameStore = defineStore('game', {
 
             player.announced = null
             player.tricksWon = 0
+            ;(player as any).wonCount = 0
           }
         })
         this.roundHistory.push(data.results)
@@ -190,6 +197,21 @@ export const useGameStore = defineStore('game', {
         const remaining = Math.max(0, (data.deadline ?? 0) - (data.serverNow ?? 0))
         this.turnEndsAt = remaining > 0 ? Date.now() + remaining : 0
       })
+
+      // Présence générique : un joueur est parti (away) ou revenu → affichage icône IA.
+      channel.listen('PlayerPresenceChanged', (data: any) => {
+        const player = this.players.find(p => sameId(p.id, data.playerId))
+        if (player) (player as any).away = !!data.away
+      })
+    },
+
+    /** Charge l'état de présence (qui est "away") depuis le backend générique. */
+    async hydratePresence() {
+      const lobby = useLobbyStore()
+      const res = await appApi.getRoomPresence(lobby.roomId)
+      if (!res.success) return
+      const away: string[] = (res.data?.away ?? []).map(String)
+      this.players.forEach((p: any) => { p.away = away.includes(String(p.id)) })
     },
 
     async playCard(cardId: number, excuseValue: number | null = null) {
@@ -217,6 +239,11 @@ export const useGameStore = defineStore('game', {
       lobby.roomCode = room.code
       lobby.myId = myId
       lobby.isHost = room.players?.find((p: any) => sameId(p.id, myId))?.pivot?.is_host ?? false
+      this.loadedRoomId = String(room.id)
+      this.loadedRoomCode = String(room.code)
+
+      // on préserve les flags "away" déjà connus (un resync /state ne doit pas les effacer)
+      const prevAway = new Map(this.players.map((p: any) => [String(p.id), !!p.away]))
 
       const orderedPlayers: any[] = room.players ?? []
       this.players = orderedPlayers.map((p, i) => {
@@ -237,8 +264,11 @@ export const useGameStore = defineStore('game', {
           hand,
           announced: state?.announcements?.[pid] ?? null,
           tricksWon: state?.tricksWon?.[pid] ?? 0,
+          // nb de cartes gagnées cette manche (approx au refresh : plis × nb joueurs)
+          wonCount: (state?.tricksWon?.[pid] ?? 0) * orderedPlayers.length,
           lives,
           isAlive: lives > 0,
+          away: prevAway.get(pid) ?? false,
         }
       }) as any
 
@@ -272,6 +302,14 @@ export const useGameStore = defineStore('game', {
       }
       this.applyState(res.data)
       return true
+    },
+
+    /** Repart propre pour une AUTRE room : quitte l'ancien canal et réinitialise l'état. */
+    resetForNewRoom() {
+      if (this.loadedRoomId) {
+        try { echo.leave(`game.${this.loadedRoomId}`) } catch { /* ignore */ }
+      }
+      this.$reset()
     },
 
     /**

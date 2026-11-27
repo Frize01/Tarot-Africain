@@ -37,6 +37,9 @@ import authApi from './authApi'
 
 window.Pusher = Pusher
 
+// En prod (HTTPS), Reverb passe par Caddy en wss. Piloté par VITE_REVERB_SCHEME ('https' → TLS).
+const reverbTLS = (import.meta.env.VITE_REVERB_SCHEME as string) === 'https'
+
 export const echo = new Echo({
   broadcaster: 'reverb',
   // Les events backend utilisent broadcastAs() = nom court (ex: "CardPlayed").
@@ -46,8 +49,9 @@ export const echo = new Echo({
   wsHost: import.meta.env.VITE_REVERB_HOST,
   wsPort: parseInt(import.meta.env.VITE_REVERB_PORT as string),
   wssPort: parseInt(import.meta.env.VITE_REVERB_PORT as string),
-  forceTLS: false,
-  enabledTransports: ['ws'], // On force uniquement 'ws', pas de 'wss' en local sans certificat SSL
+  forceTLS: reverbTLS,
+  // dev local : 'ws' seulement (pas de certif) ; prod : 'ws' + 'wss' via Caddy
+  enabledTransports: reverbTLS ? ['ws', 'wss'] : ['ws'],
   authorizer: (channel: any) => {
     return {
       authorize: (socketId: string, callback: Function) => {

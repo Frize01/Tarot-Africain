@@ -1,0 +1,23 @@
+# Bloc Caddy pour Tarot Africain (HTTPS auto via TLS-ALPN sur :443).
+# Caddy sert le front buildé et proxifie API + websocket Reverb (même domaine).
+tarot.tom-bury.fr, vps123931.serveur-vps.net {
+    encode gzip
+    root * /opt/tarot-africain/front-app/dist
+
+    # API Laravel
+    @api path /api/* /sanctum/* /broadcasting/*
+    handle @api {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    # Websocket Reverb (Caddy gère l'upgrade ws automatiquement)
+    handle /app/* {
+        reverse_proxy 127.0.0.1:8081
+    }
+
+    # SPA : tout le reste → index.html
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
+}
